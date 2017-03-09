@@ -27,6 +27,5 @@ cdef extern from "../c/revolve_c.h":
     cdef int revolve_getinfo(CRevolve r)
     cdef int revolve_getoldcapo(CRevolve r)
     cdef int revolve_getwhere(CRevolve r)
-    cdef void revolve_setinfo(CRevolve r, int inf)
+    #cdef void revolve_setinfo(CRevolve r, int inf)
     cdef void revolve_turn(CRevolve r, int final)
-#const char* revolve_caction_string(CACTION action);

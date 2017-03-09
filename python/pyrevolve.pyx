@@ -105,10 +105,10 @@ cdef class checkpointer(object):
     def where(self):
         return declarations.revolve_getwhere(self.__r)
 
-    @info.setter
-    def info(self, value):
-        cdef int c_value = value
-        declarations.revolve_setinfo(self.__r, c_value)
+    #@info.setter
+    #def info(self, value):
+    #    cdef int c_value = value
+    #    declarations.revolve_setinfo(self.__r, c_value)
 
     def turn(self, final):
         cdef int c_final = final
