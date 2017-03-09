@@ -1,77 +1,119 @@
 cimport declarations
 
-def revolve(check,capo,fine,snaps,info):
-    cdef int c_check = check
-    cdef int c_capo  = capo
-    cdef int c_fine  = fine
-    cdef int c_snaps = snaps
-    cdef int c_info  = info
-    cdef declarations.action whatodo
-    whatodo = declarations.revolve(&c_check, &c_capo, &c_fine, c_snaps, &c_info)
-    return whatodo, c_check, c_capo, c_fine, c_info
+# TODO: 
+# proper error handling if arguments can not be cast to int
+# proper error handling if Revolve fails
 
-def maxrange(ss, tt):
-    cdef int c_ss = ss
-    cdef int c_tt = tt
-    return declarations.maxrange(c_ss, c_tt)
+from enum import Enum
+from warnings import warn
 
-def adjust(steps):
-    cdef int c_steps = steps
-    cdef int adjsize
-    adjsize = declarations.adjust(c_steps)
-    return adjsize
+class Action(Enum):
+    advance   = 1
+    takeshot  = 2
+    restore   = 3
+    firstrun  = 4
+    youturn   = 5
+    terminate = 6
+    error     = 7
 
-def numforw(steps, snaps):
-    cdef int c_steps = steps
-    cdef int c_snaps = snaps
-    return declarations.numforw(c_steps, c_snaps)
+cdef class checkpointer(object):
+    cdef declarations.CRevolve __r
 
-def expense(steps, snaps):
-    cdef int c_steps = steps
-    cdef int c_snaps = snaps
-    return declarations.expense(c_steps, c_snaps)
+    def __init__(self, snapshots, timesteps=None, snapshots_ram=None):
+        cdef int c_sn
+        cdef int c_st
+        cdef int c_sr
+        
+        # if no number of steps is given, we need an online strategy
+        if(timesteps == None):
+            if(snapshots_ram != None):
+                warn("Multi-stage online checkpointing is not implemented.")
+                warn("Using single-stage online checkpointing instead.")
+            c_sn = snapshots
+            self.__r = declarations.revolve_create_online(c_sn)
+        # if number of steps is given and no multi-stage strategy is requested,
+        # use standard offline Revolve
+        elif(snapshots_ram == None):
+            c_sn = snapshots
+            c_st = timesteps
+            self.__r = declarations.revolve_create_offline(c_st, c_sn)
+        # number of steps is known and multi-stage is requested,
+        # use offline multistage strategy
+        else:
+            c_sn = snapshots
+            c_st = timesteps
+            c_sr = snapshots_ram
+            self.__r = declarations.revolve_create_multistage(c_st, c_sn, c_sr)
 
-def driver(steps, snaps, info):
-    cdef int c_snaps = snaps
-    cdef int c_steps = steps
-    cdef int c_check = -1
-    cdef int c_capo = 0
-    cdef int c_fine = c_steps + c_capo
-    cdef int c_info  = info
-    cdef declarations.action whatodo
+    def revolve(self):
+        cdef declarations.CACTION action
+        action = declarations.revolve(self.__r)
+        if(action == declarations.CACTION_ADVANCE):
+            retAction = Action.advance
+        elif(action == declarations.CACTION_TAKESHOT):
+            retAction = Action.takeshot
+        elif(action == declarations.CACTION_RESTORE):
+            retAction = Action.restore
+        elif(action == declarations.CACTION_FIRSTRUN):
+            retAction = Action.firstrun
+        elif(action == declarations.CACTION_YOUTURN):
+            retAction = Action.youturn
+        elif(action == declarations.CACTION_TERMINATE):
+            retAction = Action.terminate
+        else:
+            # action must be "error"
+            retAction = Action.error
+        return retAction
 
-    while True:
-        whatodo = declarations.revolve(&c_check, &c_capo, &c_fine, c_snaps, &c_info)
-        if ((whatodo == declarations.takeshot) and (c_info > 1)):
-            print(" takeshot at %6d"%c_capo)
-        if ((whatodo == declarations.advance) and (c_info > 2)):
-            print(" advance to %7d"%c_capo)
-        if ((whatodo == declarations.firsturn) and (c_info > 2)):
-            print(" firsturn at %6d"%c_capo)
-        if ((whatodo == declarations.youturn) and (c_info > 2)):
-            print(" youturn at %7d"%c_capo)
-        if ((whatodo == declarations.restore) and (c_info > 2)):
-            print(" restore at %7d"%c_capo)
-        if (whatodo == declarations.error):
-            print(" irregular termination of revolve")
-            break
-        if (whatodo == declarations.terminate):
-            if(info == 10):
-                print(" number of checkpoints stored exceeds checkup,")
-                print(" increase constant 'checkup' and recompile")
-            if(info == 11):
-                print(" number of checkpoints stored = %d exceeds snaps = %d,"%(c_check+1,c_snaps))
-                print(" ensure 'snaps' > 0 and increase initial 'fine'")
-            if(info == 12):
-                print(" error occurs in numforw")
-            if(info == 13):
-                print(" enhancement of 'fine', 'snaps' checkpoints stored,")
-                print(" increase 'snaps'")
-            if(info == 14):
-                print(" number of snaps exceeds snapsup, ")
-                print(" increase constant 'snapsup' and recompile")
-            if(info == 15):
-                print(" number of reps exceeds repsup, ")
-                print(" increase constant 'repsup' and recompile")
-            break
-    return c_info
+    def adjust(self, timesteps):
+        cdef c_st = timesteps
+        return declarations.revolve_adjust(self.__r, c_st)
+
+    @property
+    def advances(self):
+        return declarations.revolve_getadvances(self.__r)
+
+    @property
+    def check(self):
+        return declarations.revolve_getcheck(self.__r)
+
+    @property
+    def checkram(self):
+        return declarations.revolve_getcheckram(self.__r)
+
+    @property
+    def checkrom(self):
+        return declarations.revolve_getcheckrom(self.__r)
+
+    @property
+    def capo(self):
+        return declarations.revolve_getcapo(self.__r)
+
+    @property
+    def fine(self):
+        return declarations.revolve_getfine(self.__r)
+
+    @property
+    def info(self):
+        return declarations.revolve_getinfo(self.__r)
+
+    @property
+    def oldcapo(self):
+        return declarations.revolve_getoldcapo(self.__r)
+
+    @property
+    def where(self):
+        return declarations.revolve_getwhere(self.__r)
+
+    @info.setter
+    def info(self, value):
+        cdef int c_value = value
+        declarations.revolve_setinfo(self.__r, c_value)
+
+    def turn(self, final):
+        cdef int c_final = final
+        declarations.revolve_turn(self.__r, c_final)
+
+    def __del__(self):
+        declarations.revolve_destroy(self.__r)
+

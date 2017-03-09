@@ -1,15 +1,32 @@
-cdef extern from "../c/revolve.h":
-    cdef enum action:
-        advance,
-        takeshot,
-        restore,
-        firsturn,
-        youturn,
-        terminate,
-        error
+cdef extern from "../c/revolve_c.h":
+    ctypedef enum CACTION:
+        CACTION_ADVANCE,
+        CACTION_TAKESHOT,
+        CACTION_RESTORE,
+        CACTION_FIRSTRUN,
+        CACTION_YOUTURN,
+        CACTION_TERMINATE,
+        CACTION_ERROR
 
-    cdef action revolve(int *check, int *capo, int *fine, int snaps, int *info)
-    cdef int maxrange(int ss, int tt)
-    cdef int adjust(int steps)
-    cdef int numforw(int steps, int snaps)
-    cdef double expense(int steps, int snaps)
+    ctypedef struct CRevolve:
+        void *ptr
+
+    cdef CRevolve revolve_create_offline(int st, int sn)
+    cdef CRevolve revolve_create_online(int sn)
+    cdef CRevolve revolve_create_multistage(int st, int sn, int sn_ram)
+    cdef CACTION revolve(CRevolve r)
+    cdef void revolve_destroy(CRevolve r)
+
+    cdef int revolve_adjust(CRevolve r, int steps)
+    cdef int revolve_getadvances(CRevolve r)
+    cdef int revolve_getcheck(CRevolve r)
+    cdef int revolve_getcheckram(CRevolve r)
+    cdef int revolve_getcheckrom(CRevolve r)
+    cdef int revolve_getcapo(CRevolve r)
+    cdef int revolve_getfine(CRevolve r)
+    cdef int revolve_getinfo(CRevolve r)
+    cdef int revolve_getoldcapo(CRevolve r)
+    cdef int revolve_getwhere(CRevolve r)
+    cdef void revolve_setinfo(CRevolve r, int inf)
+    cdef void revolve_turn(CRevolve r, int final)
+#const char* revolve_caction_string(CACTION action);

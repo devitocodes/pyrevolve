@@ -4,7 +4,10 @@ from Cython.Build import cythonize
 ext_modules = [
   Extension("pyrevolve",
     sources=["python/pyrevolve.pyx",
-             "c/src.c"])
+             "c/revolve_c.cpp",
+             "c/revolve.cpp"],
+    language="c++",
+  )
 ]
 
 setup(
