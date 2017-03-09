@@ -19,16 +19,3 @@ To run, try something like
     c = pr.checkpointer(5,30)
     c.revolve()
 
-# Contents
-
-The pyrevolve package contains the functions from the reference implementation:
-
- - revolve (the main revolve algorithm)
- - maxrange (the maximum number of time steps achievable with a given number of snapshots and a given runtime overhead factor)
- - numforw (estimate the total number of forward evaluations that will be necessary for the given number of steps and snapshots)
- - expense (compute the overhead factor for the given number of steps and snapshots)
- - adjust (find a cost-effective number of checkpoints, which roughly minimises the product of memory usage and compute time. This makes sense if you pay for compute resources per time and per memory size.)
- - driver (example code that uses revolve and prints its actions for illustration)
- 
-A detailed documentation of these functions is in the original paper, or in the `c/src.c` file. 
-
