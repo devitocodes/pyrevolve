@@ -9,14 +9,15 @@ The pyrevolve library is a thin Python wrapper around the reference implementati
 # Installation and usage
 To install, clone the repo and call
 
-    python setup.py build_ext --inplace
+    python setup.py build_ext
     
 To run, try something like
 
     import pyrevolve as pr
     nsteps = 30
-    nsnaps = pr.adjust(nsteps)
-    pr.driver(nsteps, nsnaps, 3)
+    nsnaps = 5
+    c = pr.checkpointer(5,30)
+    c.revolve()
 
 # Contents
 
