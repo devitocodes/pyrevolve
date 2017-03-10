@@ -17,7 +17,10 @@ cdef extern from "../c/revolve_c.h":
     cdef CACTION revolve(CRevolve r)
     cdef void revolve_destroy(CRevolve r)
 
-    cdef int revolve_adjust(CRevolve r, int steps)
+    cdef int revolve_adjust(int steps)
+    cdef int revolve_maxrange(int st, int sn)
+    cdef int revolve_numforw(int steps, int snaps)
+    cdef double revolve_expense(int steps, int snaps)
     cdef int revolve_getadvances(CRevolve r)
     cdef int revolve_getcheck(CRevolve r)
     cdef int revolve_getcheckram(CRevolve r)

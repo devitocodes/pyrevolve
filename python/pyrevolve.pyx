@@ -1,11 +1,18 @@
 cimport declarations
 
-# TODO: 
-# proper error handling if arguments can not be cast to int
-# proper error handling if Revolve fails
-
 from enum import Enum
 from warnings import warn
+
+class RevolveError(Exception):
+    pass
+    errCodes = {
+        10: "number of checkpoints stored exceeds checkup",
+        11: "number of checkpoints stored exceeds snaps",
+        12: "internal error in numforw",
+        13: "enhancement of 'fine', increase 'snaps'",
+        14: "number of snaps exceeds snapsup",
+        15: "number of reps exceeds repsup"
+    }
 
 class Action(Enum):
     advance   = 1
@@ -15,6 +22,25 @@ class Action(Enum):
     youturn   = 5
     terminate = 6
     error     = 7
+
+def adjust(timesteps):
+    cdef int c_st = timesteps
+    return declarations.revolve_adjust(c_st)
+
+def maxrange(snapshots, timefactor):
+    cdef int c_ss = snapshots
+    cdef int c_tt = timefactor
+    return declarations.revolve_maxrange(c_ss, c_tt)
+
+def numforw(timesteps, snapshots):
+    cdef int c_st = timesteps
+    cdef int c_sn = snapshots
+    return declarations.revolve_numforw(c_st, c_sn)
+
+def expense(timesteps, snapshots):
+    cdef int c_st = timesteps
+    cdef int c_sn = snapshots
+    return declarations.revolve_expense(c_st, c_sn)
 
 cdef class checkpointer(object):
     cdef declarations.CRevolve __r
@@ -45,6 +71,10 @@ cdef class checkpointer(object):
             c_sr = snapshots_ram
             self.__r = declarations.revolve_create_multistage(c_st, c_sn, c_sr)
 
+    @property
+    def info(self):
+        return declarations.revolve_getinfo(self.__r)
+
     def revolve(self):
         cdef declarations.CACTION action
         action = declarations.revolve(self.__r)
@@ -61,13 +91,10 @@ cdef class checkpointer(object):
         elif(action == declarations.CACTION_TERMINATE):
             retAction = Action.terminate
         else:
-            # action must be "error"
+            # in this case, action must be "error"
             retAction = Action.error
+            raise(RevolveError(RevolveError.errCodes[self.info]))
         return retAction
-
-    def adjust(self, timesteps):
-        cdef c_st = timesteps
-        return declarations.revolve_adjust(self.__r, c_st)
 
     @property
     def advances(self):
@@ -92,10 +119,6 @@ cdef class checkpointer(object):
     @property
     def fine(self):
         return declarations.revolve_getfine(self.__r)
-
-    @property
-    def info(self):
-        return declarations.revolve_getinfo(self.__r)
 
     @property
     def oldcapo(self):

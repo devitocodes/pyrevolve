@@ -37,7 +37,7 @@ Schedule::Schedule(int sn,Checkpoint *c)
 
 
 
-int Schedule::numforw(int steps, int snaps)
+int numforw(int steps, int snaps)
 {
 
   int reps, range, num;
@@ -1140,7 +1140,7 @@ Revolve::Revolve(int st,int sn)
   steps=st;
   snaps=sn;
   check=-1;
-  info = 1;
+  info = 0;
   multi=false;
   where.reserve(snaps);
   for(int i=0;i<snaps;i++)
@@ -1161,7 +1161,7 @@ Revolve::Revolve(int st,int sn,int sn_ram)
   steps=st;
   snaps=sn;
   check=-1;
-  info = 1;
+  info = 0;
   multi=true;
   where.reserve(snaps);
   indizes_ram.reserve(snaps);
@@ -1205,7 +1205,7 @@ Revolve::Revolve(int sn)
   snaps=sn;
   //info=inf;
   check=-1;
-  info = 1;
+  info = 0;
   r=2;
   checkpoint->advances=0;
   checkpoint->takeshots=0;
@@ -1311,7 +1311,7 @@ void Revolve::turn(int final)
   }
 }
 
-double Revolve::expense(int steps, int snaps)
+double expense(int steps, int snaps)
 {
   double ratio;
 
@@ -1334,7 +1334,7 @@ double Revolve::expense(int steps, int snaps)
 
 /* ************************************************************************* */
 
-int Revolve::maxrange(int ss, int tt)
+int maxrange(int ss, int tt)
 {
   int i, ires;
   double res = 1.0;
@@ -1361,7 +1361,7 @@ int Revolve::maxrange(int ss, int tt)
 
 /* ************************************************************************* */
 
-int Revolve::adjust(int steps)
+int adjust(int steps)
 {
   int snaps, s, reps;
 

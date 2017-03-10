@@ -20,7 +20,10 @@ extern "C" CRevolve revolve_create_online(int sn)
 }
 extern "C" void revolve_destroy(CRevolve r) { delete (Revolve*) r.ptr; }
 
-extern "C" int revolve_adjust(CRevolve r, int steps) { return ((Revolve*) r.ptr)->adjust(steps); }
+extern "C" int revolve_adjust(int steps) { return adjust(steps); }
+extern "C" int revolve_maxrange(int ss, int tt) { return maxrange(ss, tt); }
+extern "C" int revolve_numforw(int steps, int snaps) { return numforw(steps, snaps); }
+extern "C" double revolve_expense(int steps, int snaps) { return expense(steps, snaps); }
 
 extern "C" CACTION revolve(CRevolve r) 
 {

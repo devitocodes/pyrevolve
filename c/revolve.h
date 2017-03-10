@@ -27,7 +27,18 @@ namespace ACTION
 	enum action { advance, takeshot, restore, firsturn, youturn, terminate, error} ;
 }
 
-
+/**The function ADJUST(STEPS) is provided. It can be used to determine a value of SNAPS so that the increase in spatial complexity equals approximately the increase in temporal complexity. For that ADJUST computes a return value satisfying SNAPS ~= log_4 (STEPS) because of the theory developed in the paper mentioned above. */
+int adjust(int steps);
+/** The auxiliary function MAXRANGE(SNAPS,REPS) returns the integer (SNAPS+REPS)!/(SNAPS!REPS!) provided SNAPS >=0, REPS >= 0. Otherwise there will be appropriate error messages and the value -1 will be returned. If the binomial expression is not representable as a  signed 4 byte integer, greater than 2^31-1, this maximal value is returned and a warning message printed.*/
+int maxrange(int ss, int tt);
+/** The necessary number of forward steps without recording is calculated by the function 
+    NUMFORW(STEPS,SNAPS)                          
+STEPS denotes the total number of time steps, i.e. FINE-CAPO     
+during the first call of REVOLVE. When SNAPS is less than 1 an    
+error message will be given and -1 is returned as value.  */
+int numforw(int steps, int snaps);
+/** To choose an appropriated value of SNAPS the function EXPENSE(STEPS,SNAPS) estimates the run-time factor incurred by REVOLVE for a particular value of SNAPS. The ratio NUMFORW(STEPS,SNAPS)/STEPS is returned. This ratio corresponds to the run-time factor of the execution relative to the run-time of one forward time step.*/
+double expense(int steps, int snaps);
 
 /** \enum action
 Through an encoding of its return value REVOLVE asks the calling program to perform one of these 'actions', which we will 
@@ -93,13 +104,6 @@ class Schedule
 	/** This function does not do anything but must be derived
 	*/
 	virtual ACTION::action revolve() { return ACTION::error; };  
-	/** The necessary number of forward steps without recording is calculated by the function 
-                      NUMFORW(STEPS,SNAPS)                          
-	STEPS denotes the total number of time steps, i.e. FINE-CAPO     
-   	during the first call of REVOLVE. When SNAPS is less than 1 an    
-   	error message will be given and -1 is returned as value.  */
-	
-	int numforw(int steps, int snaps);
 	/** This function is virtual.*/
 	virtual int get_capo(){ return 0; };	
 	/** This function is virtual.*/
@@ -409,14 +413,6 @@ class Revolve
 	ACTION::action revolve(int* check,int* capo,int* fine,int snaps,int* info);
 	ACTION::action revolve();
 
-	/**The function ADJUST(STEPS) is provided. It can be used to determine a value of SNAPS so that the increase in spatial complexity equals approximately the increase in temporal complexity. For that ADJUST computes a return value satisfying SNAPS ~= log_4 (STEPS) because of the theory developed in the paper mentioned above. */
-	int adjust(int steps);
-	/** The auxiliary function MAXRANGE(SNAPS,REPS) returns the integer (SNAPS+REPS)!/(SNAPS!REPS!) provided SNAPS >=0, REPS >= 0. Otherwise there will be appropriate error messages and the value -1 will be returned. If the binomial expression is not representable as a  signed 4 byte integer, greater than 2^31-1, this maximal value is returned and a warning message printed.*/
-	int maxrange(int ss, int tt);
-	/** To choose an appropriated value of SNAPS the function EXPENSE(STEPS,SNAPS) estimates the run-time factor incurred by REVOLVE for a particular value of SNAPS. The ratio NUMFORW(STEPS,SNAPS)/STEPS is returned. This ratio corresponds to the run-time factor of the execution relative to the run-time of one forward time step.*/
-	double expense(int steps, int snaps);
-	/** The necessary number of forward steps without recording is calculated by the function NUMFORW(STEPS,SNAPS). STEPS denotes the total number of time steps, i.e. FINE-CAPO during the first call of REVOLVE. When SNAPS is less than 1 an error message will be given and -1 is returned as value.*/
-	int numforw(int steps, int snaps) { return f->numforw(steps,snaps); }
 	/** Turn starts the reversal of the schedule. This means that Online Checkpointing is finished. */
 	void turn(int fine);
 	
