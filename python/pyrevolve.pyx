@@ -3,6 +3,7 @@ cimport declarations
 import numpy as np
 from enum import Enum
 from warnings import warn
+import copy
 
 class RevolveError(Exception):
     pass
@@ -141,103 +142,4 @@ cdef class checkpointer(object):
 
     def __del__(self):
         declarations.revolve_destroy(self.__r)
-
-cdef class memoryStorage(object):
-    cdef __container
-    cdef __snapshots
-    cdef __snapshots_disk
-    cdef __data_dim
-    cdef __head_fwd
-    cdef __rslt_fwd
-    cdef __rslt_rev
-
-    def __init__(self,snapshots,data_dim,snapshots_disk = None):
-        try:
-            container_dim = [snapshots]+list(data_dim)
-        except TypeError, te:
-            container_dim = [snapshots,data_dim]
-        self.__container = np.zeros(container_dim)
-        self.__snapshots = snapshots
-        self.__snapshots_disk = snapshots_disk
-        self.__data_dim = data_dim
-        self.__head_fwd = np.zeros(data_dim)
-        self.__rslt_fwd = np.zeros(data_dim)
-        self.__rslt_rev = np.zeros(data_dim)
-        if(snapshots_disk != None):
-            warn("Multi-stage checkpointing not yet supported.")
-        
-    def load(self,idx):
-        self.__head_fwd = self.__container[idx,:]
-
-    def store(self,idx):
-        self.__container[idx,:] = self.__head_fwd
-
-    @property
-    def forward_head(self):
-        return self.__head_fwd
-
-    @forward_head.setter
-    def forward_head(self, value):
-        self.__head_fwd = value
-
-    @property
-    def forward_result(self):
-        return self.__rslt_fwd
-
-    @forward_result.setter
-    def forward_result(self, value):
-        self.__rslt_fwd = value
-
-    @property
-    def reverse_result(self):
-        return self.__rslt_rev
-
-    @reverse_result.setter
-    def reverse_result(self, value):
-        self.__rslt_rev = value
-
-    @property
-    def snapshots(self):
-        return self.__snapshots
-
-    @property
-    def snapshots_disk(self):
-        return self.__snapshots_disk
-
-    @property
-    def dimensions(self):
-        return self.__data_dimensions
-
-cdef class checkpointExecutor(object):
-    cdef storage
-    cdef ckp
-    cdef fwd_operator
-    cdef rev_operator
-
-    def __init__(self, fwd_operator, rev_operator, storage, timesteps = None):
-        self.storage = storage
-        if(storage.snapshots_disk != None):
-            warn("Multi-stage checkpointing not yet supported.")
-        if(timesteps == None):
-            raise Exception("Online checkpointing not yet supported.")
-        self.ckp = checkpointer(storage.snapshots, timesteps, storage.snapshots_disk)
-        self.fwd_operator = fwd_operator
-        self.rev_operator = rev_operator
-
-    def apply(self):
-        while(True):
-            action = self.ckp.revolve()
-            if(action == Action.advance):
-                self.storage.forward_head = self.fwd_operator.apply(self.storage.forward_head, self.ckp.capo-self.ckp.oldcapo)
-            elif(action == Action.takeshot):
-                self.storage.store(self.ckp.check)
-            elif(action == Action.restore):
-                self.storage.load(self.ckp.check)
-            elif(action == Action.firstrun):
-                self.storage.forward_result = self.fwd_operator.apply(self.storage.forward_head, 1)
-                self.storage.reverse_result = self.rev_operator.apply(self.storage.forward_head, self.storage.reverse_result, 1)
-            elif(action == Action.youturn):
-                self.storage.reverse_result = self.rev_operator.apply(self.storage.forward_head, self.storage.reverse_result, 1)
-            elif(action == Action.terminate):
-                return self.storage.forward_result, self.storage.reverse_result
 
