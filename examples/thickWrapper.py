@@ -190,7 +190,8 @@ class ForwardOperator(object):
     def apply(self, nIter, u, m):
         for i in range(nIter):
             u.data = u.data + m.data
-            print("  pri %s %s %d"%(u.data,m.data,self.min_steps))
+            #print("  pri %s %s %d"%(u.data,m.data,self.min_steps))
+            print("  pri %s %d"%(u.data,self.min_steps))
         return u
 
     @property
@@ -206,7 +207,8 @@ class ReverseOperator(object):
     def apply(self, nIter, u, m, v):
         for i in range(nIter):
             v.data = v.data + m.data
-            print("  adj %s %s"%(v.data,u.data+v.data))
+            #print("  adj %s %s"%(v.data,u.data+v.data))
+            print("  adj %s"%(v.data))
         return v
 
     @property
@@ -224,19 +226,20 @@ class ReverseOperator(object):
 #class ReverseBuffer(object):
 #    # this would be like checkpoint, but with adjoint data
 
-nSteps = 30
-nSnaps = pr.adjust(nSteps)
-fwdo = ForwardOperator()
-fwdn = ForwardOperator()
-fwdn.min_steps = 5
-revo = ReverseOperator()
-u = Data((1,1))
-m = Data((1,1))
-m.data = 1
-v = Data((1,1))
-storage = memoryStorage(nSnaps)
-wrp = checkpointExecutor(fwdo, fwdn, revo, storage, nSteps)
-wrp.apply(u=u,m=m,v=v)
-print("u=%s"%u.data)
-print("v=%s"%v.data)
-
+def revolve(nSteps,nSnaps=None):
+    if(nSnaps == None):
+        nSnaps = pr.adjust(nSteps)
+    fwdo = ForwardOperator()
+    fwdn = ForwardOperator()
+    fwdn.min_steps = 5
+    revo = ReverseOperator()
+    u = Data((1,1))
+    m = Data((1,1))
+    m.data = 1
+    v = Data((1,1))
+    storage = memoryStorage(nSnaps)
+    wrp = checkpointExecutor(fwdo, fwdn, revo, storage, nSteps)
+    wrp.apply(u=u,m=m,v=v)
+    print("u=%s"%u.data)
+    print("v=%s"%v.data)
+    
