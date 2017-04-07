@@ -1,9 +1,7 @@
-cimport declarations
+cimport revolve_c
 
-import numpy as np
 from enum import Enum
-from warnings import warn
-import copy
+import warnings
 
 class RevolveError(Exception):
     pass
@@ -28,25 +26,25 @@ class Action(Enum):
 
 def adjust(timesteps):
     cdef int c_st = timesteps
-    return declarations.revolve_adjust(c_st)
+    return revolve_c.revolve_adjust(c_st)
 
 def maxrange(snapshots, timefactor):
     cdef int c_ss = snapshots
     cdef int c_tt = timefactor
-    return declarations.revolve_maxrange(c_ss, c_tt)
+    return revolve_c.revolve_maxrange(c_ss, c_tt)
 
 def numforw(timesteps, snapshots):
     cdef int c_st = timesteps
     cdef int c_sn = snapshots
-    return declarations.revolve_numforw(c_st, c_sn)
+    return revolve_c.revolve_numforw(c_st, c_sn)
 
 def expense(timesteps, snapshots):
     cdef int c_st = timesteps
     cdef int c_sn = snapshots
-    return declarations.revolve_expense(c_st, c_sn)
+    return revolve_c.revolve_expense(c_st, c_sn)
 
-cdef class checkpointer(object):
-    cdef declarations.CRevolve __r
+cdef class CRevolve(object):
+    cdef revolve_c.CRevolve __r
 
     def __init__(self, snapshots, timesteps=None, snapshots_disk=None):
         cdef int c_sn
@@ -56,42 +54,42 @@ cdef class checkpointer(object):
         # if no number of steps is given, we need an online strategy
         if(timesteps == None):
             if(snapshots_disk != None):
-                warn("Multi-stage online checkpointing is not implemented.")
-                warn("Using single-stage online checkpointing instead.")
+                warnings.warn("Multi-stage online checkpointing is not implemented.")
+                warnings.warn("Using single-stage online checkpointing instead.")
             c_sn = snapshots
-            self.__r = declarations.revolve_create_online(c_sn)
+            self.__r = revolve_c.revolve_create_online(c_sn)
         # if number of steps is given and no multi-stage strategy is requested,
         # use standard offline Revolve
         elif(snapshots_disk == None):
             c_sn = snapshots
             c_st = timesteps
-            self.__r = declarations.revolve_create_offline(c_st, c_sn)
+            self.__r = revolve_c.revolve_create_offline(c_st, c_sn)
         # number of steps is known and multi-stage is requested,
         # use offline multistage strategy
         else:
             c_sn = snapshots
             c_st = timesteps
             c_sr = snapshots_disk
-            self.__r = declarations.revolve_create_multistage(c_st, c_sr, c_sn)
+            self.__r = revolve_c.revolve_create_multistage(c_st, c_sr, c_sn)
 
     @property
     def info(self):
-        return declarations.revolve_getinfo(self.__r)
+        return revolve_c.revolve_getinfo(self.__r)
 
     def revolve(self):
-        cdef declarations.CACTION action
-        action = declarations.revolve(self.__r)
-        if(action == declarations.CACTION_ADVANCE):
+        cdef revolve_c.CACTION action
+        action = revolve_c.revolve(self.__r)
+        if(action == revolve_c.CACTION_ADVANCE):
             retAction = Action.advance
-        elif(action == declarations.CACTION_TAKESHOT):
+        elif(action == revolve_c.CACTION_TAKESHOT):
             retAction = Action.takeshot
-        elif(action == declarations.CACTION_RESTORE):
+        elif(action == revolve_c.CACTION_RESTORE):
             retAction = Action.restore
-        elif(action == declarations.CACTION_FIRSTRUN):
+        elif(action == revolve_c.CACTION_FIRSTRUN):
             retAction = Action.firstrun
-        elif(action == declarations.CACTION_YOUTURN):
+        elif(action == revolve_c.CACTION_YOUTURN):
             retAction = Action.youturn
-        elif(action == declarations.CACTION_TERMINATE):
+        elif(action == revolve_c.CACTION_TERMINATE):
             retAction = Action.terminate
         else:
             # in this case, action must be "error"
@@ -101,45 +99,45 @@ cdef class checkpointer(object):
 
     @property
     def advances(self):
-        return declarations.revolve_getadvances(self.__r)
+        return revolve_c.revolve_getadvances(self.__r)
 
     @property
     def check(self):
-        return declarations.revolve_getcheck(self.__r)
+        return revolve_c.revolve_getcheck(self.__r)
 
     @property
     def checkram(self):
-        return declarations.revolve_getcheckram(self.__r)
+        return revolve_c.revolve_getcheckram(self.__r)
 
     @property
     def checkrom(self):
-        return declarations.revolve_getcheckrom(self.__r)
+        return revolve_c.revolve_getcheckrom(self.__r)
 
     @property
     def capo(self):
-        return declarations.revolve_getcapo(self.__r)
+        return revolve_c.revolve_getcapo(self.__r)
 
     @property
     def fine(self):
-        return declarations.revolve_getfine(self.__r)
+        return revolve_c.revolve_getfine(self.__r)
 
     @property
     def oldcapo(self):
-        return declarations.revolve_getoldcapo(self.__r)
+        return revolve_c.revolve_getoldcapo(self.__r)
 
     @property
     def where(self):
-        return declarations.revolve_getwhere(self.__r)
+        return revolve_c.revolve_getwhere(self.__r)
 
     #@info.setter
     #def info(self, value):
     #    cdef int c_value = value
-    #    declarations.revolve_setinfo(self.__r, c_value)
+    #    revolve_c.revolve_setinfo(self.__r, c_value)
 
     def turn(self, final):
         cdef int c_final = final
-        declarations.revolve_turn(self.__r, c_final)
+        revolve_c.revolve_turn(self.__r, c_final)
 
     def __del__(self):
-        declarations.revolve_destroy(self.__r)
+        revolve_c.revolve_destroy(self.__r)
 

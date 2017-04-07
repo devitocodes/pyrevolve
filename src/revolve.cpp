@@ -20,7 +20,7 @@
 
 using namespace std;
 
-#include "revolve.h"
+#include "../include/revolve.h"
 
 /************************************************************************************************************************************
 All routines of class Schedule

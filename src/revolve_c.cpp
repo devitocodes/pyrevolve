@@ -1,4 +1,4 @@
-#include "revolve_c.h"
+#include "../include/revolve_c.h"
 
 extern "C" CRevolve revolve_create_offline(int st, int sn) 
 { 

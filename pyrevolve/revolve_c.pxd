@@ -1,4 +1,4 @@
-cdef extern from "../c/revolve_c.h":
+cdef extern from "../include/revolve_c.h":
     ctypedef enum CACTION:
         CACTION_ADVANCE,
         CACTION_TAKESHOT,
