@@ -25,9 +25,10 @@ class Symbol(object):
 
 class ForwardOperator(object):
     def apply(self, nIter, u, m):
+        print((">"*(nIter-1)+"X").rjust(u.data+nIter))
         for i in range(nIter):
             u.data = u.data + m.data
-            print("  pri %s %d"%(u.data,nIter))
+            #print("  pri %s %d"%(u.data,nIter))
         return u
 
     @property
@@ -41,9 +42,10 @@ class ForwardOperator(object):
 
 class ReverseOperator(object):
     def apply(self, nIter, u, m, v):
+        print(("<"*(nIter)).rjust(u.data+nIter))
         for i in range(nIter):
             v.data = v.data + m.data
-            print("  adj %s"%(v.data))
+            #print("  adj %s"%(v.data))
         return v
 
     @property
