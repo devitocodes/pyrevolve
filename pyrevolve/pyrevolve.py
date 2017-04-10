@@ -1,12 +1,11 @@
 import crevolve as cr
-import numpy as np
-import warnings
+
 
 class Checkpoint(object):
     """Holds a list of symbol objects that hold data. Each checkpoint object
     represents a state. This is usually only used internally by pyrevolve."""
 
-    def __init__(self,symbols):
+    def __init__(self, symbols):
         """Intialise a checkpoint object. Upon initialisation, a checkpoint
         stores only a reference to the symbols that are passed into it."""
         self.symbols = symbols
@@ -20,7 +19,7 @@ class Checkpoint(object):
         cp = Checkpoint(cp_data)
         return cp
 
-    def restore_from(self,other):
+    def restore_from(self, other):
         """Deep-copy the data contained in the symbols of the other checkpoint
         into the Symbols held by the current checkpoint."""
         for i in other.symbols:
@@ -38,25 +37,25 @@ class Checkpoint(object):
 class MemoryStorage(object):
     """In the classic Revolve case, this holds a stack of Checkpoint objects.
     This is usually only used internally by pyrevolve.
-    Future work: For more advanced cases, this may have to hold several stacks (one for
-    memory, one for HDD, one for...) or a vector of Checkpoint objects to support
-    random access for online checkpointing.
+    Future work: For more advanced cases, this may have to hold several stacks
+    (one for memory, one for HDD, one for...) or a vector of Checkpoint objects
+    to support random access for online checkpointing.
     """
 
-    def __init__(self,n_snapshots):
+    def __init__(self, n_snapshots):
         """Initialise storage space for the given number of snapshots."""
         self.__n_snapshots = n_snapshots
         self.__container = n_snapshots*[None]
-    
-    def register_symbols(self,ivals):
+
+    def register_symbols(self, ivals):
         """Pass in references to all symbols that need to be checkpointed."""
         self.__head_fwd = Checkpoint(ivals)
- 
-    def store(self,idx):
+
+    def store(self, idx):
         """Store the data contained in all symbols into slot idx."""
         self.__container[idx] = Checkpoint(self.__head_fwd.symbols).copy()
 
-    def load(self,idx):
+    def load(self, idx):
         """Load the data from slot idx back into the symbols."""
         self.__head_fwd.restore_from(self.__container[idx])
 
@@ -79,10 +78,11 @@ class MemoryStorage(object):
                     print(self.__head_fwd.data[var].data)
             except:
                 pass
- 
+
     @property
     def n_snapshots(self):
         return self.__n_snapshots
+
 
 class Revolver(object):
     """
@@ -96,49 +96,57 @@ class Revolver(object):
     The rationale is that the forward computation needs to have all its input
     variables to resume the computation, but of those, only the ones that are
     modified over time need to be checkpointed.
-   
+
     Todo:
-        * Reverse operator is currently always called for a single step. Change this.
-        * Avoid redundant data stores if higher-order stencils need to save multiple
+        * Reverse operator is always called for a single step. Change this.
+        * Avoid redundant data stores if higher-order stencils save multiple
           time steps, and checkpoints are close together.
-        * Only offline single-stage is supported at the moment, wrap the others as well.
+        * Only offline single-stage is supported at the moment.
         * Give users a good handle on verbosity.
-   
+
     Nice to have, but too far away for a Todo:
-        In Algorithmic Differentiation, TBR (to-be-recorded) is a more precise concept
-        to decide which variables need to be stored. Only variables that have a
-        nonlinear influence on the result are important, and only those parts of the
-        forward operator that compute such variables need to be repeated. This would
-        require a full analysis of the forward operator, and the creation of a
-        simplified forward operator for checkpointing, that has all computations with
-        no effect on the adjoint gradients removed.
+        In Algorithmic Differentiation, TBR (to-be-recorded) is a better way
+        to decide which variables need to be stored. Only variables that have
+        a nonlinear influence on the result are important, and only those parts
+        of the forward operator that compute such variables need to be
+        repeated. This would require a full analysis of the forward operator,
+        and the creation of a simplified forward operator for checkpointing,
+        that has all computations with no effect on the adjoint gradients
+        removed.
     """
 
-    def __init__(self, fwd_operator, rev_operator, timesteps = None):
+    def __init__(self, fwd_operator, rev_operator, timesteps=None):
         """Initialise checkpointer for a given forward- and reverse operator, a
-        given number of time steps, and a given storage strategy. The number of time
-        steps must currently be provided explicitly, and the storage must be the
-        single-staged memory storage."""
-        if(timesteps == None):
-            raise Exception("Online checkpointing not yet supported. Specify number of time steps!")
+        given number of time steps, and a given storage strategy. The number of
+        time steps must currently be provided explicitly, and the storage must
+        be the single-staged memory storage."""
+        if(timesteps is None):
+            raise Exception("Online checkpointing not yet supported. Specify \
+                              number of time steps!")
         self.storage = MemoryStorage(cr.adjust(timesteps))
-        storage_disk = None # this is not yet supported
+        storage_disk = None  # this is not yet supported
         # We use the crevolve wrapper around the C++ Revolve library.
-        self.ckp = cr.CRevolve(self.storage.n_snapshots, timesteps, storage_disk)
+        self.ckp = cr.CRevolve(self.storage.n_snapshots,
+                               timesteps, storage_disk)
+
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
+        fwd_in = fwd_operator.input_params
+        fwd_out = fwd_operator.output_params
+        rev_in = rev_operator.input_params
+        rev_out = rev_operator.output_params
         # Symbols that need to be checkpointed
-        self.needs_ckp = set(fwd_operator.input_params).intersection(fwd_operator.output_params)
+        self.needs_ckp = set(fwd_in).intersection(fwd_out)
         # Symbols that need to be passed to the forward operator as an argument
-        self.needs_arg = set(fwd_operator.input_params).union(fwd_operator.output_params)
+        self.needs_arg = set(fwd_in).union(fwd_out)
         # Symbols that need to be passed to the reverse operator as an argument
-        self.adj_needs_arg = set(rev_operator.input_params).union(rev_operator.output_params)
+        self.adj_needs_arg = set(rev_in).union(rev_out)
 
-    def apply(self,**kwargs):
+    def apply(self, **kwargs):
         """Executes the forward and reverse computations. All arguments that are
         required by either the forward or reverse operator must be passed."""
 
-        # workspace, containing the symbols that the forward operator currently works with.
+        # workspace, containing symbols that the forward operator works with.
         working_data = {}
         # workspace for adjoint operator.
         adj_working_data = {}
@@ -168,7 +176,7 @@ class Revolver(object):
             elif(action == cr.Action.firstrun):
                 self.fwd_operator.apply(1, **working_data)
                 # after the last forward iteration, the primal results in
-                # workspace are copied into final_data, before the working array is
+                # workspace are copied into final_data, before working array is
                 # reset to a previous state to restart computations.
                 self.storage.turn()
                 self.rev_operator.apply(1, **adj_working_data)
@@ -181,4 +189,3 @@ class Revolver(object):
                 # results. Return.
                 self.storage.finalise()
                 break
-
