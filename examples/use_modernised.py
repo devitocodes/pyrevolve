@@ -25,7 +25,7 @@ class Symbol(object):
 
 class ForwardOperator(object):
     def apply(self, nIter, u, m):
-        print((">"*(nIter-1)+"X").rjust(u.data+nIter))
+        print((">"*nIter).rjust(u.data+nIter))
         for i in range(nIter):
             u.data = u.data + m.data
             #print("  pri %s %d"%(u.data,nIter))

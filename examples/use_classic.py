@@ -5,7 +5,7 @@ nSnaps = pr.adjust(nSteps)
 c = pr.CRevolve(nSnaps, nSteps)
 
 def forward(nFrom, nTo, i):
-    print((">"*(nTo-nFrom-1)+"X").rjust(nTo))
+    print((">"*(nTo-nFrom)).rjust(nTo))
     for it in range(nFrom,nTo):
         i = i+1
     return i
