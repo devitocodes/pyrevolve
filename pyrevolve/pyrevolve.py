@@ -1,4 +1,5 @@
 import crevolve as cr
+import collections
 
 
 class Checkpoint(object):
@@ -7,8 +8,14 @@ class Checkpoint(object):
 
     def __init__(self, symbols):
         """Intialise a checkpoint object. Upon initialisation, a checkpoint
-        stores only a reference to the symbols that are passed into it."""
-        self.symbols = symbols
+        stores only a reference to the symbols that are passed into it.
+        The symbols must be passed as a mapping symbolname->symbolobject."""
+
+        if(isinstance(symbols, collections.Mapping)):
+            self.symbols = symbols
+        else:
+            raise Exception("Symbols must be a Mapping, for example a \
+                              dictionary.")
 
     def copy(self):
         """Return a new checkpoint that holds new symbols with a deep-copy of
@@ -20,8 +27,11 @@ class Checkpoint(object):
         return cp
 
     def restore_from(self, other):
-        """Deep-copy the data contained in the symbols of the other checkpoint
+        """Deep-copy the data contained in the symbols of 'other'
         into the Symbols held by the current checkpoint."""
+        if(not isinstance(other.symbols, collections.Mapping)):
+            raise Exception("Symbols must be a Mapping, for example a \
+                              dictionary.")
         for i in other.symbols:
             self.symbols[i].data = other.symbols[i].data.copy()
 

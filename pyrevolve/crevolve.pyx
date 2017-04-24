@@ -44,12 +44,11 @@ def expense(timesteps, snapshots):
     return revolve_c.revolve_expense(c_st, c_sn)
 
 cdef class CRevolve(object):
-    cdef revolve_c.CRevolve __r
-
     def __init__(self, snapshots, timesteps=None, snapshots_disk=None):
         cdef int c_sn
         cdef int c_st
         cdef int c_sr
+        cdef revolve_c.CRevolve self.__r
         
         # if no number of steps is given, we need an online strategy
         if(timesteps == None):
