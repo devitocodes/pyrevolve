@@ -1,33 +1,37 @@
-# Revolve
-Revolve generates a optimal checkpointing schedules for adjoint computations. The algorithm is described in the excellent paper of Griewank & Walther [^1].
+# Checkpointing
 
-[^1]: Algorithm 799: Revolve: An Implementation of Checkpointing for the Reverse or Adjoint Mode of Computational Differentiation
+The adjoint computation of an unsteady nonlinear primal function requires the
+full primal trajectory in reverse temporal order. Storing this can exceed the
+available memory. In that case, Checkpointing can be used to store the state
+only at carefully selected points in time. From there, the forward computation
+can be restarted to recompute lost sections of the trajectory when they are
+needed during the adjoint computation. This is always a tradeoff between memory
+and runtime. The classic and provably optimal way to do this for a known number
+of time steps is Revolve[^1], and there are other algorithms for optimal online
+checkpointing if the number of steps is unknown a priori, or for multistage
+checkpointing if there are multiple layers of storage, e.g. memory and hard
+drive.
+
+[^1]: Algorithm 799: Revolve: An Implementation of Checkpointing for the Reverse
+or Adjoint Mode of Computational Differentiation
 
 # pyrevolve
-The pyrevolve library is a thin Python wrapper around the reference implementation in C that comes with the original paper. All fuction and argument names are identical to the original implementation.
 
-# Installation and usage
-To install, clone the repo and call
+The pyrevolve library contains two parts: crevolve, which is a thin Python
+wrapper around a previously published C++ implementation[^2], and pyrevolve
+itself, which sits on top of crevolve and manages data and computation
+management for the user.
+
+The C++ files in this package are slightly modified to play more nicely with
+Python, but the original is available from the link below.
+
+[^2]: Revolve.cpp: http://www2.math.uni-paderborn.de/index.php?id=12067&L=1
+
+# Installation
+
+The crevolve wrapper requires cython, and the compilation of the C++ files
+require that a C++ compiler is installed. To install pyrevolve, clone the repo
+and call
 
     python setup.py build_ext --inplace
     
-To run, try something like
-
-    import pyrevolve as pr
-    nsteps = 30
-    nsnaps = pr.adjust(nsteps)
-    pr.driver(nsteps, nsnaps, 3)
-
-# Contents
-
-The pyrevolve package contains the functions from the reference implementation:
-
- - revolve (the main revolve algorithm)
- - maxrange (the maximum number of time steps achievable with a given number of snapshots and a given runtime overhead factor)
- - numforw (estimate the total number of forward evaluations that will be necessary for the given number of steps and snapshots)
- - expense (compute the overhead factor for the given number of steps and snapshots)
- - adjust (find a cost-effective number of checkpoints, which roughly minimises the product of memory usage and compute time. This makes sense if you pay for compute resources per time and per memory size.)
- - driver (example code that uses revolve and prints its actions for illustration)
- 
-A detailed documentation of these functions is in the original paper, or in the `c/src.c` file. 
-

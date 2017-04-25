@@ -2,12 +2,17 @@ from distutils.core import setup, Extension
 from Cython.Build import cythonize
 
 ext_modules = [
-  Extension("pyrevolve",
-    sources=["python/pyrevolve.pyx",
-             "c/src.c"])
+    Extension("pyrevolve.crevolve",
+              sources=["pyrevolve/crevolve.pyx",
+                       "src/revolve_c.cpp",
+                       "src/revolve.cpp"],
+              include_dirs=[".", "pyrevolve"],
+              language="c++",
+              )
 ]
 
 setup(
-    ext_modules=cythonize(ext_modules),
+    name="pyrevolve",
+    packages=["pyrevolve", "pyrevolve.crevolve"],
+    ext_modules=cythonize(ext_modules)
 )
-
