@@ -23,9 +23,12 @@ itself, which sits on top of crevolve and manages data and computation
 management for the user.
 
 The C++ files in this package are slightly modified to play more nicely with
-Python, but the original is available from the link below.
+Python, but the original is available from the link below. In addition, there
+is a C wrapper around the C++ library, to simplify the interface with Python.
+This C wrapper is taken from libadjoint[^3].
 
 [^2]: Revolve.cpp: http://www2.math.uni-paderborn.de/index.php?id=12067&L=1
+[^3]: libadjoint: https://bitbucket.org/dolfin-adjoint/libadjoint
 
 # Installation
 
@@ -34,4 +37,22 @@ require that a C++ compiler is installed. To install pyrevolve, clone the repo
 and call
 
     python setup.py build_ext --inplace
+    
+# Usage
+
+There are two wrappers: a _classic_ wrapper that follows the behaviour of Revolve
+as described in the papers, and leaves the data mangement, the actual copying
+of data, and the calling of operators to the user. An example of how to use it
+can be executed by calling
+
+    python examples/use_classic.py
+    
+The other, _modernised_ wrapper, takes care of all this. The user simply calls
+this wrapper once, and provides a forward and reverse operator as arguments.
+These operators must have a certain interface that allows pyrevolve to access
+the necessary data, deep-copy it into its own checkpoint storage system, calls
+the forward and reverse operators in the right sequence, and ensures that the
+operators are working on the correct data at all times. See an example at
+
+    python examples/use_modernised.py
     
