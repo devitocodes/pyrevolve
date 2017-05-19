@@ -47,12 +47,21 @@ can be executed by calling
 
     python examples/use_classic.py
     
-The other, _modernised_ wrapper, takes care of all this. The user simply calls
-this wrapper once, and provides a forward and reverse operator as arguments.
-These operators must have a certain interface that allows pyrevolve to access
-the necessary data, deep-copy it into its own checkpoint storage system, calls
-the forward and reverse operators in the right sequence, and ensures that the
-operators are working on the correct data at all times. See an example at
+The other, _modernised_ wrapper, takes care of all this. The user creates a
+Revolver object, and passes a forward operator, reverse operator, and
+checkpoint operator to it. The Revolver provides two important methods:
+`apply_forward`, and `apply_reverse`. A call to `apply_forward` executes the
+forward computation, while creating the necessary checkpoints for the reverse
+computation. After this, a user may also call the `apply_reverse` method to
+compute the adjoints.
+
+For this to work, the user is responsible that the operators have an `apply()`
+method that takes arguments `t_start` and `t_end`, and that the checkpoint
+object has a property `size` to report the size of one checkpoint, and methods
+`load(ptr)` and `save(ptr)` that deep-copy all time-dependent live data into
+a location given in `ptr`.
+
+An example of this can be found here:
 
     python examples/use_modernised.py
     
