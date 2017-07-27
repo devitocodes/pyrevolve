@@ -32,8 +32,8 @@ class CheckpointStorage:
 
     """Allocates memory on initialisation. Requires number of checkpoints and
     size of one checkpoint. Memory is allocated in C-contiguous style."""
-    def __init__(self, size_ckp, n_ckp):
-        self.storage = np.zeros((n_ckp, size_ckp), order='C')
+    def __init__(self, size_ckp, n_ckp, dtype):
+        self.storage = np.zeros((n_ckp, size_ckp), order='C', dtype=dtype)
 
     """Returns a pointer to the contiguous chunk of memory reserved for the
     checkpoint with number `key`."""
@@ -56,9 +56,10 @@ class Revolver(object):
           stores live data rather than one of the checkpoints.
     """
 
+    arg_names = {'t_start': 't_s', 't_end': 't_e'}
+    
     def __init__(self, checkpoint,
-                 fwd_operator, rev_operator,
-                 n_checkpoints=None, n_timesteps=None):
+                 fwd_operator, rev_operator, n_timesteps, n_checkpoints=None):
         """Initialise checkpointer for a given forward- and reverse operator, a
         given number of time steps, and a given storage strategy. The number of
         time steps must currently be provided explicitly, and the storage must
@@ -71,8 +72,10 @@ class Revolver(object):
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
-        self.storage = CheckpointStorage(checkpoint.size, n_checkpoints)
+        self.storage = CheckpointStorage(checkpoint.size, n_checkpoints, checkpoint.dtype)
         self.n_timesteps = n_timesteps
+        self.fwd_args = {}
+        self.rev_args = {}
         storage_disk = None  # this is not yet supported
         # We use the crevolve wrapper around the C++ Revolve library.
         self.ckp = cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
@@ -86,8 +89,7 @@ class Revolver(object):
             action = self.ckp.revolve()
             if(action == cr.Action.advance):
                 # advance forward computation
-                self.fwd_operator.apply(t_start=self.ckp.oldcapo,
-                                        t_end=self.ckp.capo)
+                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.ckp.capo)
             elif(action == cr.Action.takeshot):
                 # take a snapshot: copy from workspace into storage
                 self.checkpoint.save(self.storage[self.ckp.check])
@@ -96,8 +98,7 @@ class Revolver(object):
                 self.checkpoint.load(self.storage[self.ckp.check])
             elif(action == cr.Action.firstrun):
                 # final step in the forward computation
-                self.fwd_operator.apply(t_start=self.ckp.oldcapo,
-                                        t_end=self.n_timesteps)
+                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.n_timesteps)
                 break
 
     def apply_reverse(self):
@@ -106,16 +107,14 @@ class Revolver(object):
         recompute sections of the trajectory that have not been stored in the
         forward run."""
 
-        self.rev_operator.apply(t_start=self.ckp.capo,
-                                t_end=self.ckp.capo+1)
+        self.call_r(t_start=self.ckp.capo, t_end=self.ckp.capo+1)
 
         while(True):
             # ask Revolve what to do next.
             action = self.ckp.revolve()
             if(action == cr.Action.advance):
                 # advance forward computation
-                self.fwd_operator.apply(t_start=self.ckp.oldcapo,
-                                        t_end=self.ckp.capo)
+                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.ckp.capo)
             elif(action == cr.Action.takeshot):
                 # take a snapshot: copy from workspace into storage
                 self.checkpoint.save(self.storage[self.ckp.check])
@@ -124,7 +123,21 @@ class Revolver(object):
                 self.checkpoint.load(self.storage[self.ckp.check])
             elif(action == cr.Action.youturn):
                 # advance adjoint computation by a single step
-                self.rev_operator.apply(t_start=self.ckp.capo,
-                                        t_end=self.ckp.capo+1)
+                self.call_r(t_start=self.ckp.capo, t_end=self.ckp.capo+1)
             elif(action == cr.Action.terminate):
                 break
+
+
+    def call(self, t_start, t_end, args, op):
+        args = args.copy()
+        args[self.arg_names['t_start']] = t_start
+        args[self.arg_names['t_end']] = t_end
+        op.apply(**args)
+
+    def call_fw(self, t_start, t_end):
+        print("Forward from %d to %d"%(t_start, t_end))
+        self.call(t_start, t_end+2, self.fwd_args, self.fwd_operator)
+
+    def call_r(self, t_start, t_end):
+        print("Reverse from %d to %d"%(t_end, t_start))
+        self.call(t_start, t_end+2, self.rev_args, self.rev_operator)
