@@ -67,11 +67,13 @@ class Revolver(object):
         if(n_timesteps is None):
             raise Exception("Online checkpointing not yet supported. Specify \
                               number of time steps!")
+        n_timesteps = n_timesteps - 2
         if(n_checkpoints is None):
             n_checkpoints = cr.adjust(n_timesteps)
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
+        checkpoint.revolver = self
         self.storage = CheckpointStorage(checkpoint.size, n_checkpoints, checkpoint.dtype)
         self.n_timesteps = n_timesteps
         self.fwd_args = {}
@@ -92,9 +94,11 @@ class Revolver(object):
                 self.call_fw(t_start=self.ckp.oldcapo, t_end=self.ckp.capo)
             elif(action == cr.Action.takeshot):
                 # take a snapshot: copy from workspace into storage
+                print("Taking snapshot number: %d"%self.ckp.check)
                 self.checkpoint.save(self.storage[self.ckp.check])
             elif(action == cr.Action.restore):
                 # restore a snapshot: copy from storage into workspace
+                print("Restoring snapshot number: %d"%self.ckp.check)
                 self.checkpoint.load(self.storage[self.ckp.check])
             elif(action == cr.Action.firstrun):
                 # final step in the forward computation
@@ -114,15 +118,18 @@ class Revolver(object):
             action = self.ckp.revolve()
             if(action == cr.Action.advance):
                 # advance forward computation
-                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.ckp.capo)
+                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.ckp.capo+1)
             elif(action == cr.Action.takeshot):
                 # take a snapshot: copy from workspace into storage
+                print("Taking snapshot number: %d"%self.ckp.check)
                 self.checkpoint.save(self.storage[self.ckp.check])
             elif(action == cr.Action.restore):
                 # restore a snapshot: copy from storage into workspace
+                print("Restoring snapshot number: %d"%self.ckp.check)
                 self.checkpoint.load(self.storage[self.ckp.check])
             elif(action == cr.Action.youturn):
                 # advance adjoint computation by a single step
+                print("t=%d, L2(u(t))=%d"%(self.ckp.capo+1, np.linalg.norm(self.checkpoint.symbols[0].data[(self.ckp.capo+1)%3, :, :])))
                 self.call_r(t_start=self.ckp.capo, t_end=self.ckp.capo+1)
             elif(action == cr.Action.terminate):
                 break
@@ -135,9 +142,9 @@ class Revolver(object):
         op.apply(**args)
 
     def call_fw(self, t_start, t_end):
-        print("Forward from %d to %d"%(t_start, t_end))
+        print("Forward from %d to %d, but actually: (%d, %d)"%(t_start, t_end, t_start, t_end+2))
         self.call(t_start, t_end+2, self.fwd_args, self.fwd_operator)
 
     def call_r(self, t_start, t_end):
-        print("Reverse from %d to %d"%(t_end, t_start))
+        print("Reverse from %d to %d, but actually: (%d, %d)"%(t_end, t_start, t_start, t_end+2))
         self.call(t_start, t_end+2, self.rev_args, self.rev_operator)
