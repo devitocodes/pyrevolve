@@ -54,7 +54,7 @@ class MyCheckpoint(pr.Checkpoint):
         """Intialise a checkpoint object. Upon initialisation, a checkpoint
         stores only a reference to the symbols that are passed into it.
         The symbols must be passed as a mapping symbolname->symbolobject."""
-
+        self.dtype = np.float32
         if(isinstance(symbols, collections.Mapping)):
             self.symbols = symbols
         else:
@@ -97,7 +97,7 @@ checkpoint = MyCheckpoint({"u": u, "m": m})
 v = Symbol((1))
 fwdo = ForwardOperator(u, m)
 revo = ReverseOperator(u, m, v)
-wrp = pr.Revolver(checkpoint, fwdo, revo, None, nSteps)
+wrp = pr.Revolver(checkpoint, fwdo, revo, nSteps)
 wrp.apply_forward()
 print("u=%s" % u.data)
 wrp.apply_reverse()

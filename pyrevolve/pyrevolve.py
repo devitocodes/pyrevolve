@@ -118,7 +118,7 @@ class Revolver(object):
             action = self.ckp.revolve()
             if(action == cr.Action.advance):
                 # advance forward computation
-                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.ckp.capo+1)
+                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.ckp.capo)
             elif(action == cr.Action.takeshot):
                 # take a snapshot: copy from workspace into storage
                 print("Taking snapshot number: %d"%self.ckp.check)
