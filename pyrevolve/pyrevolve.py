@@ -2,8 +2,12 @@ import pyrevolve.crevolve as cr
 import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
 
+class Operator(object):
+    def apply(self, **kwargs):
+        pass
 
-class Checkpoint:
+    
+class Checkpoint(object):
     """Abstract base class, containing the methods and properties that any
     user-given Checkpoint class must have."""
     __metaclass__ = ABCMeta
@@ -24,7 +28,7 @@ class Checkpoint:
         return NotImplemented
 
 
-class CheckpointStorage:
+class CheckpointStorage(object):
     """Holds a chunk of memory large enough to store all checkpoints. The
     []-operator is overloaded to return a pointer to the memory reserved for a
     given checkpoint number. Revolve will typically use this as LIFO, but the
@@ -56,8 +60,6 @@ class Revolver(object):
           stores live data rather than one of the checkpoints.
     """
 
-    arg_names = {'t_start': 't_s', 't_end': 't_e'}
-    
     def __init__(self, checkpoint,
                  fwd_operator, rev_operator, n_timesteps, n_checkpoints=None):
         """Initialise checkpointer for a given forward- and reverse operator, a
@@ -67,7 +69,6 @@ class Revolver(object):
         if(n_timesteps is None):
             raise Exception("Online checkpointing not yet supported. Specify \
                               number of time steps!")
-        n_timesteps = n_timesteps - 2
         if(n_checkpoints is None):
             n_checkpoints = cr.adjust(n_timesteps)
         self.fwd_operator = fwd_operator
@@ -91,18 +92,18 @@ class Revolver(object):
             action = self.ckp.revolve()
             if(action == cr.Action.advance):
                 # advance forward computation
-                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.ckp.capo)
+                self.call_f(t_start=self.ckp.oldcapo, t_end=self.ckp.capo)
             elif(action == cr.Action.takeshot):
                 # take a snapshot: copy from workspace into storage
-                print("Taking snapshot number: %d"%self.ckp.check)
+                #print("Taking snapshot number: %d"%self.ckp.check)
                 self.checkpoint.save(self.storage[self.ckp.check])
             elif(action == cr.Action.restore):
                 # restore a snapshot: copy from storage into workspace
-                print("Restoring snapshot number: %d"%self.ckp.check)
+                #print("Restoring snapshot number: %d"%self.ckp.check)
                 self.checkpoint.load(self.storage[self.ckp.check])
             elif(action == cr.Action.firstrun):
                 # final step in the forward computation
-                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.n_timesteps)
+                self.call_f(t_start=self.ckp.oldcapo, t_end=self.n_timesteps)
                 break
 
     def apply_reverse(self):
@@ -118,33 +119,26 @@ class Revolver(object):
             action = self.ckp.revolve()
             if(action == cr.Action.advance):
                 # advance forward computation
-                self.call_fw(t_start=self.ckp.oldcapo, t_end=self.ckp.capo)
+                self.call_f(t_start=self.ckp.oldcapo, t_end=self.ckp.capo)
             elif(action == cr.Action.takeshot):
                 # take a snapshot: copy from workspace into storage
-                print("Taking snapshot number: %d"%self.ckp.check)
+                #print("Taking snapshot number: %d"%self.ckp.check)
                 self.checkpoint.save(self.storage[self.ckp.check])
             elif(action == cr.Action.restore):
                 # restore a snapshot: copy from storage into workspace
-                print("Restoring snapshot number: %d"%self.ckp.check)
+                #print("Restoring snapshot number: %d"%self.ckp.check)
                 self.checkpoint.load(self.storage[self.ckp.check])
             elif(action == cr.Action.youturn):
                 # advance adjoint computation by a single step
-                print("t=%d, L2(u(t))=%d"%(self.ckp.capo+1, np.linalg.norm(self.checkpoint.symbols[0].data[(self.ckp.capo+1)%3, :, :])))
+                #print("t=%d, L2(u(t))=%d"%(self.ckp.capo+1, np.linalg.norm(self.checkpoint.symbols[0].data[(self.ckp.capo+1)%3, :, :])))
+                self.call_f(t_start=self.ckp.capo, t_end=self.ckp.capo+1)
                 self.call_r(t_start=self.ckp.capo, t_end=self.ckp.capo+1)
             elif(action == cr.Action.terminate):
                 break
 
 
-    def call(self, t_start, t_end, args, op):
-        args = args.copy()
-        args[self.arg_names['t_start']] = t_start
-        args[self.arg_names['t_end']] = t_end
-        op.apply(**args)
+    def call_f(self, **kwargs):
+        self.fwd_operator.apply(**kwargs)
 
-    def call_fw(self, t_start, t_end):
-        print("Forward from %d to %d, but actually: (%d, %d)"%(t_start, t_end, t_start, t_end+2))
-        self.call(t_start, t_end+2, self.fwd_args, self.fwd_operator)
-
-    def call_r(self, t_start, t_end):
-        print("Reverse from %d to %d, but actually: (%d, %d)"%(t_end, t_start, t_start, t_end+2))
-        self.call(t_start, t_end+2, self.rev_args, self.rev_operator)
+    def call_r(self, **kwargs):
+        self.rev_operator.apply(**kwargs)
