@@ -3,7 +3,14 @@ import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
 
 
-class Checkpoint:
+class Operator(object):
+    """ Abstract base class for an Operator that may be used with pyRevolve."""
+    __metaclass__ = ABCMeta
+    def apply(self, **kwargs):
+        pass
+
+
+class Checkpoint(object):
     """Abstract base class, containing the methods and properties that any
     user-given Checkpoint class must have."""
     __metaclass__ = ABCMeta
@@ -24,7 +31,7 @@ class Checkpoint:
         return NotImplemented
 
 
-class CheckpointStorage:
+class CheckpointStorage(object):
     """Holds a chunk of memory large enough to store all checkpoints. The
     []-operator is overloaded to return a pointer to the memory reserved for a
     given checkpoint number. Revolve will typically use this as LIFO, but the
