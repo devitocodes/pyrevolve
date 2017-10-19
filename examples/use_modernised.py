@@ -24,7 +24,7 @@ class Symbol(object):
         return self.__storage.size
 
 
-class ForwardOperator(object):
+class ForwardOperator(pr.Operator):
     def __init__(self, u, m):
         self.u = u
         self.m = m
@@ -35,7 +35,7 @@ class ForwardOperator(object):
             u.data = u.data + m.data
 
 
-class ReverseOperator(object):
+class ReverseOperator(pr.Operator):
     def __init__(self, u, m, v):
         self.u = u
         self.v = v
@@ -88,6 +88,11 @@ class MyCheckpoint(pr.Checkpoint):
         for i in self.symbols:
             size = size+self.symbols[i].size
         return size
+
+    @property
+    def dtype(self):
+        return np.float32
+    
 
 nSteps = 30
 u = Symbol((4))

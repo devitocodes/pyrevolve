@@ -3,11 +3,23 @@ import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
 
 
-class Checkpoint:
+class Operator(object):
+    """ Abstract base class for an Operator that may be used with pyRevolve."""
+    __metaclass__ = ABCMeta
+    def apply(self, **kwargs):
+        pass
+
+
+class Checkpoint(object):
     """Abstract base class, containing the methods and properties that any
     user-given Checkpoint class must have."""
     __metaclass__ = ABCMeta
 
+    @abstractproperty
+    def dtype(self):
+        """Return the numpy-compatible dtype of the checkpoint data (float32/float64)"""
+        return NotImplemented
+    
     @abstractproperty
     def size(self):
         """Return the size of a single checkpoint, in number of entries."""
@@ -24,7 +36,7 @@ class Checkpoint:
         return NotImplemented
 
 
-class CheckpointStorage:
+class CheckpointStorage(object):
     """Holds a chunk of memory large enough to store all checkpoints. The
     []-operator is overloaded to return a pointer to the memory reserved for a
     given checkpoint number. Revolve will typically use this as LIFO, but the
@@ -32,8 +44,8 @@ class CheckpointStorage:
 
     """Allocates memory on initialisation. Requires number of checkpoints and
     size of one checkpoint. Memory is allocated in C-contiguous style."""
-    def __init__(self, size_ckp, n_ckp):
-        self.storage = np.zeros((n_ckp, size_ckp), order='C')
+    def __init__(self, size_ckp, n_ckp, dtype):
+        self.storage = np.zeros((n_ckp, size_ckp), order='C', dtype=dtype)
 
     """Returns a pointer to the contiguous chunk of memory reserved for the
     checkpoint with number `key`."""
@@ -71,7 +83,7 @@ class Revolver(object):
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
-        self.storage = CheckpointStorage(checkpoint.size, n_checkpoints)
+        self.storage = CheckpointStorage(checkpoint.size, n_checkpoints, checkpoint.dtype)
         self.n_timesteps = n_timesteps
         storage_disk = None  # this is not yet supported
         # We use the crevolve wrapper around the C++ Revolve library.
@@ -124,6 +136,8 @@ class Revolver(object):
                 self.checkpoint.load(self.storage[self.ckp.check])
             elif(action == cr.Action.youturn):
                 # advance adjoint computation by a single step
+                self.fwd_operator.apply(t_start=self.ckp.capo,
+                                        t_end=self.ckp.capo+1)
                 self.rev_operator.apply(t_start=self.ckp.capo,
                                         t_end=self.ckp.capo+1)
             elif(action == cr.Action.terminate):
