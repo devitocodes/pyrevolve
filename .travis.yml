@@ -1,0 +1,27 @@
+sudo: false
+
+language: python
+
+matrix:
+  include:
+    - os: linux
+      python: "3.6"
+      env: DEVITO_ARCH=gcc-4.9 DEVITO_OPENMP=0
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test     # For gcc 4.9 and 5
+    packages:
+      - gcc-4.9
+      - g++-4.9
+      - gcc-5
+      - g++-5
+
+script:
+  - flake8 .
+  - python setup.py build_ext --inplace
+  - python examples/use_classic.py
+  - python examples/use_modernised.py
+  # Enable this when we have some tests. Leaving this here as a reminder
+  #- py.test -vs tests/
