@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractproperty, abstractmethod
 class Operator(object):
     """ Abstract base class for an Operator that may be used with pyRevolve."""
     __metaclass__ = ABCMeta
+
     def apply(self, **kwargs):
         pass
 
@@ -17,9 +18,11 @@ class Checkpoint(object):
 
     @abstractproperty
     def dtype(self):
-        """Return the numpy-compatible dtype of the checkpoint data (float32/float64)"""
+        """Return the numpy-compatible dtype of the checkpoint data
+           (float32/float64)
+        """
         return NotImplemented
-    
+
     @abstractproperty
     def size(self):
         """Return the size of a single checkpoint, in number of entries."""
@@ -83,7 +86,8 @@ class Revolver(object):
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
-        self.storage = CheckpointStorage(checkpoint.size, n_checkpoints, checkpoint.dtype)
+        self.storage = CheckpointStorage(checkpoint.size, n_checkpoints,
+                                         checkpoint.dtype)
         self.n_timesteps = n_timesteps
         storage_disk = None  # this is not yet supported
         # We use the crevolve wrapper around the C++ Revolve library.
