@@ -92,7 +92,7 @@ class MyCheckpoint(pr.Checkpoint):
     @property
     def dtype(self):
         return np.float32
-    
+
 
 nSteps = 30
 u = Symbol((4))

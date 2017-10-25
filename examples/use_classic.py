@@ -16,6 +16,7 @@ def reverse(i, ib):
     print("<".rjust(i+1))
     return ib+1
 
+
 snapStack = [None]*nSnaps
 
 val = 0
