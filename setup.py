@@ -14,5 +14,6 @@ ext_modules = [
 setup(
     name="pyrevolve",
     packages=["pyrevolve", "pyrevolve.crevolve"],
-    ext_modules=cythonize(ext_modules)
+    ext_modules=cythonize(ext_modules),
+    setup_requires=["Cython >= 0.20"]
 )
