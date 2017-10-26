@@ -32,7 +32,7 @@ def extensions():
 
 configuration = {
     'name': 'pyrevolve',
-    'packages': ["pyrevolve", "pyrevolve.crevolve"],
+    'packages': ["pyrevolve"],
     'setup_requires': ['cython>=0.17'],
     'ext_modules': lazy_cythonize(extensions)
 }
