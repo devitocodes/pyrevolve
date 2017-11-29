@@ -1,4 +1,7 @@
-import pyrevolve.crevolve as cr
+try:
+    import pyrevolve.crevolve as cr
+except ImportError:
+    import crevolve as cr
 import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
 
