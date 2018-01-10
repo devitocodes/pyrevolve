@@ -917,7 +917,7 @@ Offline::Offline( int sn,Checkpoint *c,Online *o,int f) : Schedule(sn,c )
       printf(" i %d ord_ch %d ch %d\n",i,checkpoint->ord_ch[i],checkpoint->ch[i]);
   }
   checkpoint->advances = f-1;
-  info=3;
+  info=o->get_info();
   //takeshots = o->get_shots();
   //commands = o->get_commands();
   oldsnaps=snaps;
@@ -933,7 +933,7 @@ Offline::Offline( Offline &o) : Schedule(o.get_snaps(),o.get_CP())
   //commands = o.get_commands();
   steps=o.get_steps();
   check=o.get_check();
-  info=3;
+  info=o.get_info();
   fine=o.get_steps();
   capo=o.get_capo();
   online=o.get_online();
