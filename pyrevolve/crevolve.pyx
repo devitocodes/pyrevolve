@@ -70,7 +70,7 @@ cdef class CRevolve(object):
             c_sn = snapshots
             c_st = timesteps
             c_sr = snapshots_disk
-            self.__r = revolve_c.revolve_create_multistage(c_st, c_sr, c_sn)
+            self.__r = revolve_c.revolve_create_multistage(c_st, c_sn, c_sr)
 
     @property
     def info(self):
