@@ -1,4 +1,5 @@
 from setuptools import setup, Extension
+import versioneer
 
 
 class lazy_cythonize(list):
@@ -34,7 +35,9 @@ configuration = {
     'name': 'pyrevolve',
     'packages': ["pyrevolve"],
     'setup_requires': ['cython>=0.17'],
-    'ext_modules': lazy_cythonize(extensions)
+    'ext_modules': lazy_cythonize(extensions),
+    'version': versioneer.get_version(),
+    'cmdclass': versioneer.get_cmdclass
 }
 
 
