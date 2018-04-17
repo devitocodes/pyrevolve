@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 from pyrevolve.pyrevolve import * # noqa
 from pyrevolve.crevolve import * # noqa
+from pyrevolve.multistage import * # noqa
 
 from ._version import get_versions
 __version__ = get_versions()['version']
