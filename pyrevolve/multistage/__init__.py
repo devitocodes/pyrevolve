@@ -1,1 +1,1 @@
-from multistage import *
+from .multistage import *
