@@ -12,12 +12,19 @@ class MemoryManager(object):
         self._storage = np.zeros(tuple([ncp]+list(shape)), order='C', dtype=dtype)
         self._slots = [MemorySlot(i, self) for i in range(ncp)]
         
-    def get_free(self):
-        for i, slot in enumerate(self._slots):
-            if slot.free():
-                print("MemoryManager: Returning slot %d" % i)
-                slot.meta = None
-                return slot
+    def get_free(self, block=True):
+        while True:
+            for i, slot in enumerate(self._slots):
+                if slot.free():
+                    #print("MemoryManager: Returning slot %d" % i)
+                    slot.meta = None
+                    return slot
+            if not block:
+                break
+            else:
+                print("Waiting for slot to free up")
+                print(len(self._slots))
+                sleep(0.1)
         return None
 
     def __getitem__(self, key):
@@ -29,23 +36,31 @@ class MemoryManager(object):
                 return slot
         return None
 
+    def reset(self):
+        for s in self._slots:
+            s.reset()
+
 
 class DiskThread(object):
-    def __init__(self):
+    def __init__(self, prefix):
         self.wait = True
         self.t = None
+        if len(prefix) > 0:
+            prefix=prefix+"/"
+        self.prefix = prefix
         
     def stop(self):
         self.wait = False
 
 
 class DiskWriter(DiskThread):
-    def __init__(self, queue):
-        super(DiskWriter, self).__init__()
+    def __init__(self, queue, prefix):
+        super(DiskWriter, self).__init__(prefix)
         self.queue = queue
         self.written = []
 
     def start(self):
+        self.wait = True
         self.t = Thread(target=self._execute, args=())
         self.t.daemon = True
         self.t.start()
@@ -55,7 +70,7 @@ class DiskWriter(DiskThread):
             mem = self.queue.get() # this blocks on an empty queue
             n_ts = mem.meta
             self.written.append(n_ts)
-            with open("%d.npy" % n_ts, "wb") as f:
+            with open("%s%d.npy" % (self.prefix, n_ts), "wb") as f:
                 np.save(f, mem.data)
             mem.read_lock.release()
 
@@ -73,8 +88,8 @@ class DiskReader(DiskThread):
         self.c_t.start()
 
     def read_step(self, idx, slot):
-        print("Reading file %d.npy into slot %d" % (idx, slot.slot))
-        with open("%d.npy" % idx, "rb") as f:
+        #print("Reading file %d.npy into slot %d" % (idx, slot.slot))
+        with open("%s%d.npy" % (self.prefix, idx), "rb") as f:
             with slot.write_lock:
                 slot.data[:] = np.load(f, mmap_mode=None)
         
@@ -90,19 +105,21 @@ class DiskReader(DiskThread):
                 sleep(0.1)
             
 class Checkpointer(object):
-    def __init__(self, fwd_op, rev_op, ncp, nt, shape, dtype, interval=1):
+    def __init__(self, fwd_op, rev_op, ncp, nt, fwcp, revcp, interval=1, nrevcp=3, file_prefix=""):
         self.fwd_op = fwd_op
         self.rev_op = rev_op
         self.ncp = ncp
         self.nt = nt
         self.interval = interval
-        self.memory = MemoryManager(ncp, shape, dtype)
+        self.memory = MemoryManager(ncp, (fwcp.size, ), fwcp.dtype)
+        self.r_memory = MemoryManager(nrevcp, (revcp.size, ), revcp.dtype)
         self.write_queue = Queue()
-        self.disk_writer = DiskWriter(self.write_queue)
-        self.disk_reader = DiskReader()
+        self.disk_writer = DiskWriter(self.write_queue, prefix=file_prefix)
+        self.disk_reader = DiskReader(prefix=file_prefix)
 
     def apply_forward(self, init_buff):
-        ob = self.memory.get_free()
+        self.memory.reset()
+        ob = self.memory.get_free(block=True)
         ib = DummyContext(init_buff)
         ib.meta = 0
         ib.read_lock.acquire()
@@ -120,7 +137,7 @@ class Checkpointer(object):
                         self.write_queue.put(ob)
                 i+=self.interval
                 ib = ob
-                ob = self.memory.get_free()
+                ob = self.memory.get_free(block=True)
         finally:
             self.disk_writer.stop()
         with ib.read_lock:
@@ -130,7 +147,7 @@ class Checkpointer(object):
                 ob.read_lock.acquire()
                 i += self.interval
                 ib = ob
-                ob = self.memory.get_free()
+                ob = self.memory.get_free(block=True)
         while i < self.nt:
             with ib.read_lock:
                 with ob.write_lock:
@@ -139,8 +156,8 @@ class Checkpointer(object):
                     ob.read_lock.acquire()
             i += 1
             ib = ob
-            ob = self.memory.get_free()
-        print("Forward complete")
+            ob = self.memory.get_free(block=True)
+        #print("Forward complete")
 
     def prefetch(self):
         if not len(self.disk_writer.written):
@@ -153,7 +170,9 @@ class Checkpointer(object):
         return idx, slot
 
     def apply_reverse(self, init_buff):
-        ob = self.memory.get_free()
+        self.r_memory.reset()
+        return_value = None
+        ob = self.r_memory.get_free(block=True)
         assert(ob is not None)
         ob.read_lock.acquire()
         ib = DummyContext(init_buff)
@@ -165,14 +184,13 @@ class Checkpointer(object):
                 with ob.write_lock:
                     ob.read_lock.release()
                     fwd = self.memory.meta(i)
-                    print(i, ib, ob, fwd)
                     assert(fwd is not None)
-                    self.rev_op.apply(ib.data, ob.data,fwd.data, t_start=i, t_end=i-1)
+                    return_value = self.rev_op.apply(ib.data, ob.data,fwd.data, t_start=i, t_end=i-1)
                     ob.meta = -i
                     fwd.read_lock.release() # Locked when loaded
             ib = ob
             ib.read_lock.acquire()
-            ob = self.memory.get_free()
+            ob = self.r_memory.get_free(block=True)
             assert(ob is not None)
             ob.read_lock.acquire()
         i -= 1
@@ -202,16 +220,17 @@ class Checkpointer(object):
                     with ob.write_lock:
                         ob.read_lock.release()
                         fwd = self.memory.meta(i)
-                        print(i, ib, ob, fwd)
                         assert(fwd is not None)
-                        self.rev_op.apply(ib.data, ob.data, fwd.data, t_start=i, t_end=i-1)
+                        return_value = self.rev_op.apply(ib.data, ob.data, fwd.data, t_start=i, t_end=i-1)
                         fwd.read_lock.release()
                         ob.meta = -i
                 ib = ob
-                ob = self.memory.get_free()
+                ob = self.r_memory.get_free()
                 assert(ob is not None)
                 ob.read_lock.acquire()
                 i -= 1
+        self.r_memory.reset()
+        return return_value
                     
         
 

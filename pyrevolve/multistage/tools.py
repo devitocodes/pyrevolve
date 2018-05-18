@@ -67,7 +67,8 @@ class ReadLock(object):
         return self.counter.increment()
 
     def release(self):
-        assert(not self.free())
+        if self.free():
+            raise RuntimeError("The lock is already free")
         return self.counter.decrement()
 
 class MemorySlot(object):
@@ -87,3 +88,10 @@ class MemorySlot(object):
 
     def __str__(self):
         return str(self.meta)
+
+    def reset(self):
+        try:
+            self.read_lock.release()
+            self.write_lock.release()
+        except RuntimeError:
+            pass
