@@ -27,4 +27,4 @@ script:
   - python examples/use_classic.py
   - python examples/use_modernised.py
   # Enable this when we have some tests. Leaving this here as a reminder
-  #- py.test -vs tests/
+  - py.test -vs tests/
