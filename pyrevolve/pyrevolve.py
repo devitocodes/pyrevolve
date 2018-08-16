@@ -118,6 +118,8 @@ class Revolver(object):
                 self.fwd_operator.apply(t_start=self.ckp.oldcapo,
                                         t_end=self.n_timesteps)
                 break
+            else:
+                raise ValueError("Unknown action %d" % action)
 
     def apply_reverse(self):
         """Executes only the backward computation while loading checkpoints,
@@ -149,3 +151,5 @@ class Revolver(object):
                                         t_end=self.ckp.capo+1)
             elif(action == cr.Action.terminate):
                 break
+            else:
+                raise ValueError("Unknown action %d" % action)
