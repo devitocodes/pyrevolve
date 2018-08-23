@@ -51,7 +51,8 @@ class AtomicCounter:
         self.increment(-num)
 
 class ReadLock(object):
-    def __init__(self):
+    def __init__(self, mem):
+        self.mem = mem
         self.counter = AtomicCounter()
 
     def __enter__(self):
@@ -68,15 +69,16 @@ class ReadLock(object):
 
     def release(self):
         if self.free():
-            raise RuntimeError("The lock is already free")
-        return self.counter.decrement()
+            raise RuntimeError("The lock is already free (%d)"%self.mem.slot)
+        v = self.counter.decrement()
+        return v
 
 class MemorySlot(object):
     def __init__(self, slot, memory):
         self.slot = slot
         self.memory = memory
         self.write_lock = Lock()
-        self.read_lock = ReadLock()
+        self.read_lock = ReadLock(self)
         self.meta = None
 
     @property
