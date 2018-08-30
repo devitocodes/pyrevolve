@@ -3,8 +3,8 @@ from time import sleep
 from threading import Thread
 from queue import Queue
 from .tools import MemorySlot, DummyContext
-from .stacktracer import start_trace, stop_trace
 import sys
+from .debugger import trace_start, trace_stop
 
 
 class MemoryManager(object):    
@@ -52,7 +52,7 @@ class DiskThread(object):
     def done(self):
         self.wait = False
         self.t.join()
-        stop_trace()
+        trace_stop()
 
 
 class DiskWriter(DiskThread):
@@ -133,7 +133,7 @@ class Checkpointer(object):
         self.disk_reader = DiskReader(prefix=file_prefix)
 
     def apply_forward(self, init_buff):
-        start_trace("trace.html",interval=5,auto=True) 
+        trace_start("trace.html",interval=5,auto=True) 
         self.memory.reset()
         ob = self.memory.get_free(block=True)
         ib = DummyContext(init_buff)
