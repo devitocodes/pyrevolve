@@ -4,6 +4,7 @@ from threading import Thread
 from queue import Queue
 from .tools import MemorySlot, DummyContext
 from .stacktracer import start_trace, stop_trace
+import sys
 
 
 class MemoryManager(object):    
@@ -73,7 +74,8 @@ class DiskWriter(DiskThread):
         while self.wait or not self.queue.empty():
             try:
                 mem = self.queue.get(True, timeout=1) # this blocks on an empty queue
-            except:
+            except Exceptions as e:
+                print(e)
                 break
             n_ts = mem.meta if hasattr(mem, 'meta') else -1
             self.written.append(n_ts)
@@ -85,8 +87,9 @@ class DiskWriter(DiskThread):
             if hasattr(mem, "slot"):
                 slot = mem.slot
             mem.read_lock.release()
-            #print("Written step %d" % n_ts, end='\r')
+            print("Written step %d" % n_ts, end='\r', file=sys.stderr)
         self.writing = False
+        print("Writer thread exiting", file=sys.stderr)
 
 
 class DiskReader(DiskThread):
@@ -152,6 +155,7 @@ class Checkpointer(object):
                 ib = ob
                 ob = self.memory.get_free(block=True)
         finally:
+            print("Compute exiting", file=sys.stderr)
             self.disk_writer.done()
         """
         with ib.read_lock:
