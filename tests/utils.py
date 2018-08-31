@@ -13,11 +13,11 @@ class SimpleCheckpoint(Checkpoint):
         self.save_pointers = set()
         self.load_pointers = set()
 
-    def save(self, ptr):
+    def save(self, ptr, compressor):
         self.save_counter += 1
         self.save_pointers.add(np_ref_address(ptr))
 
-    def load(self, ptr):
+    def load(self, ptr, decompressor):
         self.load_counter += 1
         self.load_pointers.add(np_ref_address(ptr))
 

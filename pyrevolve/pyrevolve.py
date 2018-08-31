@@ -4,6 +4,7 @@ except ImportError:
     import crevolve as cr
 import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
+from .compression import compressors, decompressors
 
 
 class Operator(object):
@@ -32,12 +33,12 @@ class Checkpoint(object):
         return NotImplemented
 
     @abstractmethod
-    def save(self, ptr):
+    def save(self, ptr, compressor):
         """Deep-copy live data into the numpy array `ptr`."""
         return NotImplemented
 
     @abstractmethod
-    def load(self, ptr):
+    def load(self, ptr, compressor):
         """Deep-copy from the numpy array `ptr` into the live data."""
         return NotImplemented
 
@@ -76,7 +77,7 @@ class Revolver(object):
 
     def __init__(self, checkpoint,
                  fwd_operator, rev_operator,
-                 n_checkpoints=None, n_timesteps=None):
+                 n_checkpoints=None, n_timesteps=None, compression=None):
         """Initialise checkpointer for a given forward- and reverse operator, a
         given number of time steps, and a given storage strategy. The number of
         time steps must currently be provided explicitly, and the storage must
@@ -96,6 +97,9 @@ class Revolver(object):
         # We use the crevolve wrapper around the C++ Revolve library.
         self.ckp = cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
 
+        self.compressor = compressors[compression]
+        self.decompressor = compressors[compression]
+
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,
         then returns."""
@@ -109,10 +113,10 @@ class Revolver(object):
                                         t_end=self.ckp.capo)
             elif(action == cr.Action.takeshot):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.ckp.check])
+                self.checkpoint.save(self.storage[self.ckp.check], self.compressor)
             elif(action == cr.Action.restore):
                 # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.ckp.check])
+                self.checkpoint.load(self.storage[self.ckp.check], self.decompressor)
             elif(action == cr.Action.firstrun):
                 # final step in the forward computation
                 self.fwd_operator.apply(t_start=self.ckp.oldcapo,
@@ -139,10 +143,10 @@ class Revolver(object):
                                         t_end=self.ckp.capo)
             elif(action == cr.Action.takeshot):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.ckp.check])
+                self.checkpoint.save(self.storage[self.ckp.check], self.compressor)
             elif(action == cr.Action.restore):
                 # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.ckp.check])
+                self.checkpoint.load(self.storage[self.ckp.check], self.decompressor)
             elif(action == cr.Action.youturn):
                 # advance adjoint computation by a single step
                 self.fwd_operator.apply(t_start=self.ckp.capo,
