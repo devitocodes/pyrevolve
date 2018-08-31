@@ -1,6 +1,6 @@
 import numpy as np
 from time import sleep
-from threading import Thread
+from threading import Thread, Event
 from queue import Queue
 from .tools import MemorySlot, DummyContext
 import sys
@@ -43,14 +43,14 @@ class MemoryManager(object):
 
 class DiskThread(object):
     def __init__(self, prefix):
-        self.wait = True
+        self.stop_requested = Event()
         self.t = None
         if len(prefix) > 0:
             prefix=prefix+"/"
         self.prefix = prefix
         
     def done(self):
-        self.wait = False
+        self.stop_requested.set()
         self.t.join()
         trace_stop()
 
@@ -71,9 +71,9 @@ class DiskWriter(DiskThread):
 
     def _execute(self):
         self.writing = True
-        while self.wait or not self.queue.empty():
+        while not self.stop_requested.isSet() or not self.queue.empty():
             try:
-                mem = self.queue.get(True, timeout=1) # this blocks on an empty queue
+                mem = self.queue.get(True, timeout=1) # this waits on empty queue upto 1 sec
             except Exception as e:
                 print(e, file=sys.stderr)
                 break
@@ -87,7 +87,6 @@ class DiskWriter(DiskThread):
             if hasattr(mem, "slot"):
                 slot = mem.slot
             mem.read_lock.release()
-            #print("Written step %d" % n_ts, end='\r', file=sys.stderr)
         self.writing = False
         print("Writer thread exiting", file=sys.stderr)
 
@@ -99,7 +98,7 @@ class DiskReader(DiskThread):
         t.start()
 
     def read_continous(self, idxs, memory):
-        self.wait = True
+        self.stop_requested.clear()
         self.c_t = Thread(target=self._execute, args=(idxs, memory))
         self.c_t.daemon = True
         self.c_t.start()
@@ -110,7 +109,7 @@ class DiskReader(DiskThread):
                 slot.data[:] = np.load(f, mmap_mode=None)
         
     def _execute(self, idxs, memory):
-        while self.wait and len(idxs):
+        while not self.stop_requested.isSet() and len(idxs):
             slot = memory.get_free()
             if slot:
                 slot.read_lock.acquire()
