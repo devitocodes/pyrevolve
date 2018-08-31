@@ -74,8 +74,8 @@ class DiskWriter(DiskThread):
         while self.wait or not self.queue.empty():
             try:
                 mem = self.queue.get(True, timeout=1) # this blocks on an empty queue
-            except Exceptions as e:
-                print(e)
+            except Exception as e:
+                print(e, file=sys.stderr)
                 break
             n_ts = mem.meta if hasattr(mem, 'meta') else -1
             self.written.append(n_ts)
@@ -87,7 +87,7 @@ class DiskWriter(DiskThread):
             if hasattr(mem, "slot"):
                 slot = mem.slot
             mem.read_lock.release()
-            print("Written step %d" % n_ts, end='\r', file=sys.stderr)
+            #print("Written step %d" % n_ts, end='\r', file=sys.stderr)
         self.writing = False
         print("Writer thread exiting", file=sys.stderr)
 

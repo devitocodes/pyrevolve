@@ -26,6 +26,7 @@ def stacktraces():
 import os
 import time
 import threading
+from pathlib import Path
 
 class TraceDumper(threading.Thread):
     """Dump stack traces into a given file periodically."""
@@ -60,9 +61,12 @@ class TraceDumper(threading.Thread):
             pass
     
     def stacktraces(self):
-        fout = file(self.fpath,"wb+")
+        fout = None
         try:
-            fout.write(stacktraces())
+            fout = open(self.fpath,"wb+")
+            fout.write(stacktraces().encode())
+        except Exception as e:
+            print(e, file=sys.stderr)
         finally:
             fout.close()
 
@@ -72,6 +76,8 @@ def trace_start(fpath,interval=5,auto=True):
     """Start tracing into the given file."""
     global _tracer
     if _tracer is None:
+        p = Path(fpath).resolve()
+        print("Starting trace to %s" % str(p), file=sys.stderr)
         _tracer = TraceDumper(fpath,interval,auto)
         _tracer.setDaemon(True)
         _tracer.start()
