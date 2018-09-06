@@ -5,7 +5,7 @@ except ImportError:
 import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
 from .compression import compressors, decompressors
-
+from .schedulers import Revolve, Action
 
 class Operator(object):
     """ Abstract base class for an Operator that may be used with pyRevolve."""
@@ -93,9 +93,9 @@ class Revolver(object):
         self.storage = CheckpointStorage(checkpoint.size, n_checkpoints,
                                          checkpoint.dtype)
         self.n_timesteps = n_timesteps
-        storage_disk = None  # this is not yet supported
-        # We use the crevolve wrapper around the C++ Revolve library.
-        self.ckp = cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
+
+        self.scheduler = Revolve(n_checkpoints, n_timesteps)
+        # cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
 
         self.compressor = compressors[compression]
         self.decompressor = compressors[compression]
@@ -106,20 +106,20 @@ class Revolver(object):
 
         while(True):
             # ask Revolve what to do next.
-            action = self.ckp.revolve()
-            if(action == cr.Action.advance):
+            action = self.scheduler.next()
+            if(action.type == Action.ADVANCE):
                 # advance forward computation
-                self.fwd_operator.apply(t_start=self.ckp.oldcapo,
-                                        t_end=self.ckp.capo)
-            elif(action == cr.Action.takeshot):
+                self.fwd_operator.apply(t_start=self.scheduler.old_capo,
+                                        t_end=self.scheduler.capo)
+            elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.ckp.check], self.compressor)
-            elif(action == cr.Action.restore):
+                self.checkpoint.save(self.storage[self.scheduler.cp_pointer], self.compressor)
+            elif(action.type == Action.RESTORE):
                 # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.ckp.check], self.decompressor)
-            elif(action == cr.Action.firstrun):
+                self.checkpoint.load(self.storage[self.scheduler.cp_pointer], self.decompressor)
+            elif(action.type == Action.LASTFW):
                 # final step in the forward computation
-                self.fwd_operator.apply(t_start=self.ckp.oldcapo,
+                self.fwd_operator.apply(t_start=self.scheduler.old_capo,
                                         t_end=self.n_timesteps)
                 break
             else:
@@ -131,29 +131,29 @@ class Revolver(object):
         recompute sections of the trajectory that have not been stored in the
         forward run."""
 
-        self.rev_operator.apply(t_start=self.ckp.capo,
-                                t_end=self.ckp.capo+1)
+        self.rev_operator.apply(t_start=self.scheduler.capo,
+                                t_end=self.scheduler.capo+1)
 
         while(True):
             # ask Revolve what to do next.
-            action = self.ckp.revolve()
-            if(action == cr.Action.advance):
+            action = self.scheduler.next()
+            if(action.type == Action.ADVANCE):
                 # advance forward computation
-                self.fwd_operator.apply(t_start=self.ckp.oldcapo,
-                                        t_end=self.ckp.capo)
-            elif(action == cr.Action.takeshot):
+                self.fwd_operator.apply(t_start=self.scheduler.old_capo,
+                                        t_end=self.scheduler.capo)
+            elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.ckp.check], self.compressor)
-            elif(action == cr.Action.restore):
+                self.checkpoint.save(self.storage[self.scheduler.cp_pointer], self.compressor)
+            elif(action.type == Action.RESTORE):
                 # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.ckp.check], self.decompressor)
-            elif(action == cr.Action.youturn):
+                self.checkpoint.load(self.storage[self.scheduler.cp_pointer], self.decompressor)
+            elif(action.type == Action.REVERSE):
                 # advance adjoint computation by a single step
-                self.fwd_operator.apply(t_start=self.ckp.capo,
-                                        t_end=self.ckp.capo+1)
-                self.rev_operator.apply(t_start=self.ckp.capo,
-                                        t_end=self.ckp.capo+1)
-            elif(action == cr.Action.terminate):
+                self.fwd_operator.apply(t_start=self.scheduler.capo,
+                                        t_end=self.scheduler.capo+1)
+                self.rev_operator.apply(t_start=self.scheduler.capo,
+                                        t_end=self.scheduler.capo+1)
+            elif(action.type == Action.TERMINATE):
                 break
             else:
-                raise ValueError("Unknown action %d" % action)
+                raise ValueError("Unknown action %s" % str(action))

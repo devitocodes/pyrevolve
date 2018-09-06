@@ -37,4 +37,6 @@ class SimpleOperator(Operator):
     def apply(self, *args, **kwargs):
         t_start = kwargs['t_start']
         t_end = kwargs['t_end']
+        assert(t_start <= t_end)
+        print("Appyling from %d to %d" % (t_start, t_end))
         self.counter += abs(t_end - t_start)

@@ -1,4 +1,8 @@
 
-compressors = {None: lambda x: x}
-decompressors = {None: lambda x: x}
+def identity(indata):
+    print("Got data")
+    return indata
+
+compressors = {None: identity}
+decompressors = {None: identity}
 
