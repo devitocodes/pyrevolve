@@ -4,7 +4,7 @@ except ImportError:
     import crevolve as cr
 import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
-from .compression import compressors, decompressors
+from .compression import compressors, decompressors, init_compression
 from .schedulers import Revolve, Action
 
 class Operator(object):
@@ -77,7 +77,7 @@ class Revolver(object):
 
     def __init__(self, checkpoint,
                  fwd_operator, rev_operator,
-                 n_checkpoints=None, n_timesteps=None, compression=None):
+                 n_checkpoints=None, n_timesteps=None, compression=None, compression_params={}):
         """Initialise checkpointer for a given forward- and reverse operator, a
         given number of time steps, and a given storage strategy. The number of
         time steps must currently be provided explicitly, and the storage must
@@ -96,7 +96,7 @@ class Revolver(object):
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)
         # cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
-
+        init_compression(compression_params)
         self.compressor = compressors[compression]
         self.decompressor = compressors[compression]
 
