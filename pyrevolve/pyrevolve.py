@@ -145,8 +145,8 @@ class Revolver(object):
                 self.checkpoint.load(self.storage[self.ckp.check])
             elif(action == cr.Action.youturn):
                 # advance adjoint computation by a single step
-                self.fwd_operator.apply(t_start=self.ckp.capo,
-                                        t_end=self.ckp.capo+1)
+                #self.fwd_operator.apply(t_start=self.ckp.capo,
+                #                        t_end=self.ckp.capo+1)
                 self.rev_operator.apply(t_start=self.ckp.capo,
                                         t_end=self.ckp.capo+1)
             elif(action == cr.Action.terminate):
