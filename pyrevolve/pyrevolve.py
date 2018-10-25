@@ -98,9 +98,7 @@ class Revolver(object):
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)
         # cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
-        init_compression(compression_params)
-        self.compressor = compressors[compression]
-        self.decompressor = decompressors[compression]
+        self.compressor, self.decompressor = init_compression(compression_params)
 
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,
