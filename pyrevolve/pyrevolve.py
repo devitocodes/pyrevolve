@@ -7,6 +7,7 @@ from abc import ABCMeta, abstractproperty, abstractmethod
 from .compression import compressors, decompressors, init_compression
 from .schedulers import Revolve, Action
 
+
 class Operator(object):
     """ Abstract base class for an Operator that may be used with pyRevolve."""
     __metaclass__ = ABCMeta
@@ -77,7 +78,8 @@ class Revolver(object):
 
     def __init__(self, checkpoint,
                  fwd_operator, rev_operator,
-                 n_checkpoints=None, n_timesteps=None, compression=None, compression_params={}):
+                 n_checkpoints=None, n_timesteps=None, compression=None,
+                 compression_params={}):
         """Initialise checkpointer for a given forward- and reverse operator, a
         given number of time steps, and a given storage strategy. The number of
         time steps must currently be provided explicitly, and the storage must
@@ -98,7 +100,7 @@ class Revolver(object):
         # cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
         init_compression(compression_params)
         self.compressor = compressors[compression]
-        self.decompressor = compressors[compression]
+        self.decompressor = decompressors[compression]
 
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,
@@ -113,10 +115,12 @@ class Revolver(object):
                                         t_end=self.scheduler.capo)
             elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.scheduler.cp_pointer], self.compressor)
+                self.checkpoint.save(self.storage[self.scheduler.cp_pointer],
+                                     self.compressor)
             elif(action.type == Action.RESTORE):
                 # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.scheduler.cp_pointer], self.decompressor)
+                self.checkpoint.load(self.storage[self.scheduler.cp_pointer],
+                                     self.decompressor)
             elif(action.type == Action.LASTFW):
                 # final step in the forward computation
                 self.fwd_operator.apply(t_start=self.scheduler.old_capo,
@@ -143,10 +147,12 @@ class Revolver(object):
                                         t_end=self.scheduler.capo)
             elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.scheduler.cp_pointer], self.compressor)
+                self.checkpoint.save(self.storage[self.scheduler.cp_pointer],
+                                     self.compressor)
             elif(action.type == Action.RESTORE):
                 # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.scheduler.cp_pointer], self.decompressor)
+                self.checkpoint.load(self.storage[self.scheduler.cp_pointer],
+                                     self.decompressor)
             elif(action.type == Action.REVERSE):
                 # advance adjoint computation by a single step
                 self.fwd_operator.apply(t_start=self.scheduler.capo,
