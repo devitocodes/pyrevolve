@@ -3,6 +3,7 @@ from pyrevolve import Revolver
 
 import pytest
 
+
 @pytest.mark.parametrize("nt, ncp", [(10, 2), (10, 4), (10, 6), (10, 8),
                                      (10, 9), (10, 10), (10, 11), (10, 12)])
 def test_forward_nt(nt, ncp):
