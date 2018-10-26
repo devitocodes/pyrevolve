@@ -1,6 +1,5 @@
 from pyrevolve import Operator, Checkpoint
 import numpy as np
-import math
 from operator import mul
 from functools import reduce
 
@@ -44,6 +43,7 @@ class SimpleOperator(Operator):
         print("Appyling from %d to %d" % (t_start, t_end))
         self.counter += abs(t_end - t_start)
 
+
 class IncrementOperator(Operator):
     def __init__(self, direction, field):
         assert(direction in (-1, 1))
@@ -55,6 +55,7 @@ class IncrementOperator(Operator):
         t_end = kwargs['t_end']
         assert(t_start <= t_end)
         self.field[:] = self.field[:] + self.direction * abs(t_start - t_end)
+
 
 class YoCheckpoint(Checkpoint):
     def __init__(self, field):

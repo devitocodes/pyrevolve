@@ -5,6 +5,7 @@ from pyrevolve.compression import (compressors, decompressors, allowed_names,
 from pyrevolve import Revolver
 from utils import IncrementOperator, YoCheckpoint
 
+
 def test_all_defined():
     for scheme in allowed_names:
         assert(scheme in compressors)
@@ -26,12 +27,13 @@ def test_complete():
     ncp = 10
     shape = (10, 10)
     a = np.zeros(shape)
-    
+
     fwd = IncrementOperator(1, a)
     rev = IncrementOperator(-1, a)
     cp = YoCheckpoint(a)
     compression_params = {'scheme': None}
-    revolver = Revolver(cp, fwd, rev, ncp, nt, compression_params=compression_params)
+    revolver = Revolver(cp, fwd, rev, ncp, nt,
+                        compression_params=compression_params)
     revolver.apply_forward()
     assert(np.all(np.isclose(a, np.zeros(shape) + nt)))
     revolver.apply_reverse()
