@@ -6,10 +6,10 @@ matrix:
   include:
     - os: linux
       python: "3.6"
-      env: PYTHONPATH=$PWD
+      env: PYTHONPATH=$PWD:$PWD/pyzfp
     - os: linux
       python: "2.7"
-      env: PYTHONPATH=$PWD
+      env: PYTHONPATH=$PWD:$PWD/pyzfp
 
 addons:
   apt:
@@ -22,6 +22,7 @@ addons:
       - g++-5
 
 script:
+  - git clone https://github.com/navjotk/pyzfp.git && cd pyzfp && make
   - flake8 --exclude versioneer.py .
   - python setup.py build_ext --inplace
   - python examples/use_classic.py
