@@ -1,6 +1,7 @@
 import numpy as np
 
-from pyrevolve.compression import compressors, decompressors, allowed_names, init_compression
+from pyrevolve.compression import (compressors, decompressors, allowed_names,
+                                   init_compression)
 
 
 def test_all_defined():

@@ -6,7 +6,8 @@ from functools import partial
 
 
 DEFAULTS = {None: {}, 'blosc': {'chunk_size': 1000000},
-             'zfp': {'tolerance': 0.0000001}}
+            'zfp': {'tolerance': 0.0000001}}
+
 
 def init_compression(params):
     scheme = params.pop('scheme', None)
@@ -41,14 +42,15 @@ def blosc_compress(params, indata):
         size += len(c)
         chunk_sizes.append(len(c))
 
-    ratio = round(len(s)/float(size), 3)
-    return {'data': compressed, 'chunks': chunk_sizes, 'shape': indata.shape, 'dtype': indata.dtype}
+    # ratio = round(len(s)/float(size), 3)
+    return {'data': compressed, 'chunks': chunk_sizes, 'shape': indata.shape,
+            'dtype': indata.dtype}
 
 
 def blosc_decompress(params, indata):
     compressed = indata['data']
     chunk_sizes = indata['chunks']
-    
+
     ptr = 0
     decompressed = bytes()
     for s in chunk_sizes:
@@ -56,15 +58,21 @@ def blosc_decompress(params, indata):
         d = blosc.decompress(c)
         decompressed += d
         ptr += s
-    return np.fromstring(decompressed, dtype=indata['dtype']).reshape(indata['shape'])
+    return np.fromstring(decompressed,
+                         dtype=indata['dtype']).reshape(indata['shape'])
+
 
 def zfp_compress(params, indata):
-    return {'data': zfp.compress(indata, **params), 'shape': indata.shape, 'dtype': indata.dtype}
+    return {'data': zfp.compress(indata, **params), 'shape': indata.shape,
+            'dtype': indata.dtype}
+
 
 def zfp_decompress(params, indata):
-    return zfp.decompress(indata['data'], indata['shape'], indata['dtype'], **params)
+    return zfp.decompress(indata['data'], indata['shape'], indata['dtype'],
+                          **params)
 
 
 compressors = {None: identity, 'blosc': blosc_compress, 'zfp': zfp_compress}
-decompressors = {None: identity, 'blosc': blosc_decompress, 'zfp': zfp_decompress}
+decompressors = {None: identity, 'blosc': blosc_decompress,
+                 'zfp': zfp_decompress}
 allowed_names = [None, 'blosc', 'zfp']

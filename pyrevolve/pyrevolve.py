@@ -4,7 +4,7 @@ except ImportError:
     import crevolve as cr
 import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
-from .compression import compressors, decompressors, init_compression
+from .compression import init_compression as init
 from .schedulers import Revolve, Action
 
 
@@ -98,7 +98,7 @@ class Revolver(object):
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)
         # cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
-        self.compressor, self.decompressor = init_compression(compression_params)
+        self.compressor, self.decompressor = init(compression_params)
 
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,
