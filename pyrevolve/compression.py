@@ -1,26 +1,29 @@
 import blosc
 import numpy as np
 from contexttimer import Timer
+from functools import partial
 
 
-CHUNK_SIZE = 1000000
+DEFAULT_CHUNK_SIZE = 1000000
 
 
 def init_compression(params):
-    global CHUNK_SIZE
-    chunk = params.get('chunk_size', None)
-    if chunk is not None:
-        CHUNK_SIZE = chunk
+    scheme = params.pop('scheme', None)
+    compressor = compressors[scheme]
+    decompressor = decompressors[scheme]
+    part_compressor = partial(compressor, params)
+    part_decompressor = partial(decompressor, params)
+    return part_compressor, part_decompressor
 
 
-def identity(indata):
+def identity(params, indata):
     return indata
 
 
-def blosc_compress(indata):
+def blosc_compress(params, indata):
     s = indata.tostring()
-    global CHUNK_SIZE
-    chunked = [s[i:i+CHUNK_SIZE] for i in range(0, len(s), CHUNK_SIZE)]
+    chunk_size = params.pop('chunk_size', DEFAULT_CHUNK_SIZE)
+    chunked = [s[i:i+chunk_size] for i in range(0, len(s), chunk_size)]
     time = 0
     size = 0
     compressed = bytes()
@@ -34,13 +37,10 @@ def blosc_compress(indata):
         chunk_sizes.append(len(c))
 
     ratio = round(len(s)/float(size), 3)
-    print("Compression Time: %d, ratio: %f, chunk size: %d" % (time, ratio,
-                                                               CHUNK_SIZE))
     return {'data': compressed, 'chunks': chunk_sizes, 'shape': indata.shape, 'dtype': indata.dtype}
 
 
-def blosc_decompress(indata):
-    global CHUNK_SIZE
+def blosc_decompress(params, indata):
     compressed = indata['data']
     chunk_sizes = indata['chunks']
     
@@ -51,12 +51,6 @@ def blosc_decompress(indata):
         d = blosc.decompress(c)
         decompressed += d
         ptr += s
-    # s = indata.tostring()
-    # with Timer as t:
-    #    c = s.compress()
-
-    # ratio = round(len(s)/float(len(c)), 3)
-    # print("Decompression Time: %d, ratio: %f" % (t.elapsed, ratio))
     return np.fromstring(decompressed, dtype=indata['dtype']).reshape(indata['shape'])
 
 
