@@ -78,8 +78,7 @@ class Revolver(object):
 
     def __init__(self, checkpoint,
                  fwd_operator, rev_operator,
-                 n_checkpoints=None, n_timesteps=None, compression=None,
-                 compression_params={}):
+                 n_checkpoints=None, n_timesteps=None, compression_params={}):
         """Initialise checkpointer for a given forward- and reverse operator, a
         given number of time steps, and a given storage strategy. The number of
         time steps must currently be provided explicitly, and the storage must

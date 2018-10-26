@@ -68,6 +68,7 @@ def zfp_compress(params, indata):
 
 
 def zfp_decompress(params, indata):
+    print("yo")
     return zfp.decompress(indata['data'], indata['shape'], indata['dtype'],
                           **params)
 
