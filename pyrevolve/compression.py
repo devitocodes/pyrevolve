@@ -1,16 +1,21 @@
 import blosc
+import zfp
 import numpy as np
 from contexttimer import Timer
 from functools import partial
 
 
-DEFAULT_CHUNK_SIZE = 1000000
-
+DEFAULTS = {None: {}, 'blosc': {'chunk_size': 1000000},
+             'zfp': {'tolerance': 0.0000001}}
 
 def init_compression(params):
     scheme = params.pop('scheme', None)
     compressor = compressors[scheme]
     decompressor = decompressors[scheme]
+    default_values = DEFAULTS[scheme]
+    for k, v in default_values.items():
+        if k not in params:
+            params[k] = v
     part_compressor = partial(compressor, params)
     part_decompressor = partial(decompressor, params)
     return part_compressor, part_decompressor
@@ -22,7 +27,7 @@ def identity(params, indata):
 
 def blosc_compress(params, indata):
     s = indata.tostring()
-    chunk_size = params.pop('chunk_size', DEFAULT_CHUNK_SIZE)
+    chunk_size = params.pop('chunk_size')
     chunked = [s[i:i+chunk_size] for i in range(0, len(s), chunk_size)]
     time = 0
     size = 0
@@ -53,7 +58,13 @@ def blosc_decompress(params, indata):
         ptr += s
     return np.fromstring(decompressed, dtype=indata['dtype']).reshape(indata['shape'])
 
+def zfp_compress(params, indata):
+    return {'data': zfp.compress(indata, **params), 'shape': indata.shape, 'dtype': indata.dtype}
 
-compressors = {None: identity, 'blosc': blosc_compress}
-decompressors = {None: identity, 'blosc': blosc_decompress}
-allowed_names = [None, 'blosc']
+def zfp_decompress(params, indata):
+    return zfp.decompress(indata['data'], indata['shape'], indata['dtype'], **params)
+
+
+compressors = {None: identity, 'blosc': blosc_compress, 'zfp': zfp_compress}
+decompressors = {None: identity, 'blosc': blosc_decompress, 'zfp': zfp_decompress}
+allowed_names = [None, 'blosc', 'zfp']
