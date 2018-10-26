@@ -2,3 +2,4 @@ Cython
 flake8
 versioneer
 pytest
+blosc
