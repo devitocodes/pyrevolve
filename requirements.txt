@@ -3,3 +3,4 @@ flake8
 versioneer
 pytest
 blosc
+contexttimer
