@@ -31,7 +31,7 @@ def test_complete():
     fwd = IncrementOperator(1, a)
     rev = IncrementOperator(-1, a)
     cp = YoCheckpoint(a)
-    compression_params = {'scheme': None}
+    compression_params = {'scheme': 'zfp'}
     revolver = Revolver(cp, fwd, rev, ncp, nt,
                         compression_params=compression_params)
     revolver.apply_forward()

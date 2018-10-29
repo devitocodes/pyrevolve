@@ -60,6 +60,29 @@ class CheckpointStorage(object):
     def __getitem__(self, key):
         return self.storage[key, :]
 
+class BytesStorage(object):
+    """Holds a chunk of memory large enough to store all checkpoints. The
+    []-operator is overloaded to return a pointer to the memory reserved for a
+    given checkpoint number. Revolve will typically use this as LIFO, but the
+    storage also supports random access."""
+
+    """Allocates memory on initialisation. Requires number of checkpoints and
+    size of one checkpoint. Memory is allocated in C-contiguous style."""
+    def __init__(self, size_ckp, n_ckp, dtype):
+        size = size_ckp * n_ckp * np.dtype(dtype).itemsize
+        self.size_ckp = size_ckp
+        self.n_ckp = n_ckp
+        self.dtype = dtype
+        self.storage = bytearray(size)
+
+    """Returns a pointer to the contiguous chunk of memory reserved for the
+    checkpoint with number `key`."""
+    def __getitem__(self, key):
+        assert(key < self.n_ckp)
+        start = self.size_ckp * np.dtype(self.dtype).itemsize * key
+        end = start + self.size_ckp * np.dtype(self.dtype).itemsize
+        return (self.storage, start, end)
+
 
 class Revolver(object):
     """
@@ -91,7 +114,7 @@ class Revolver(object):
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
-        self.storage = CheckpointStorage(checkpoint.size, n_checkpoints,
+        self.storage = BytesStorage(checkpoint.size, n_checkpoints,
                                          checkpoint.dtype)
         self.n_timesteps = n_timesteps
 

@@ -2,7 +2,7 @@ from pyrevolve import Operator, Checkpoint
 import numpy as np
 from operator import mul
 from functools import reduce
-
+import pickle
 
 def np_ref_address(ptr):
     return ptr.__array_interface__['data'][0]
@@ -62,10 +62,16 @@ class YoCheckpoint(Checkpoint):
         self.field = field
 
     def save(self, ptr, compressor):
-        ptr[:] = compressor(self.field.flatten()[:])
+        ptr, start, end = ptr
+        pickled = pickle.dumps(compressor(self.field[:]))
+        required_length = end - start
+        actual_length = len(pickled)
+        assert(actual_length <= required_length)
+        ptr[start:(start+actual_length)] = pickled
 
     def load(self, ptr, decompressor):
-        self.field[:] = decompressor(ptr.reshape(self.field.shape)[:])
+        ptr, start, end = ptr
+        self.field[:] = decompressor(pickle.loads(ptr[start:end]))
 
     @property
     def dtype(self):
