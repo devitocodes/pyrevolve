@@ -61,6 +61,9 @@ class YoCheckpoint(Checkpoint):
     def __init__(self, field):
         self.field = field
 
+    def get_data(self, timestep):
+        return self.field
+
     def save(self, ptr, compressor):
         ptr, start, end = ptr
         pickled = pickle.dumps(compressor(self.field[:]))
@@ -75,8 +78,13 @@ class YoCheckpoint(Checkpoint):
 
     @property
     def dtype(self):
-        return np.float32
+        return self.field.dtype
 
     @property
     def size(self):
+        print("bytes", self.field.nbytes)
         return reduce(mul, self.field.shape)
+
+    @property
+    def bytes(self):
+        return len(pickle.dumps(self.field))

@@ -1,9 +1,13 @@
+from abc import ABCMeta, abstractproperty, abstractmethod
+import logging
+import pickle
+
+import numpy as np
+
 try:
     import pyrevolve.crevolve as cr
 except ImportError:
     import crevolve as cr
-import numpy as np
-from abc import ABCMeta, abstractproperty, abstractmethod
 from .compression import init_compression as init
 from .schedulers import Revolve, Action
 
@@ -34,17 +38,17 @@ class Checkpoint(object):
         return NotImplemented
 
     @abstractmethod
-    def save(self, ptr, compressor):
+    def get_data(self, timestep):
         """Deep-copy live data into the numpy array `ptr`."""
         return NotImplemented
 
-    @abstractmethod
-    def load(self, ptr, compressor):
-        """Deep-copy from the numpy array `ptr` into the live data."""
+    @abstractproperty
+    def bytes(self):
+        """Return the size of a single checkpoint, in number of entries."""
         return NotImplemented
 
 
-class CheckpointStorage(object):
+class NumpyStorage(object):
     """Holds a chunk of memory large enough to store all checkpoints. The
     []-operator is overloaded to return a pointer to the memory reserved for a
     given checkpoint number. Revolve will typically use this as LIFO, but the
@@ -60,6 +64,7 @@ class CheckpointStorage(object):
     def __getitem__(self, key):
         return self.storage[key, :]
 
+
 class BytesStorage(object):
     """Holds a chunk of memory large enough to store all checkpoints. The
     []-operator is overloaded to return a pointer to the memory reserved for a
@@ -68,21 +73,49 @@ class BytesStorage(object):
 
     """Allocates memory on initialisation. Requires number of checkpoints and
     size of one checkpoint. Memory is allocated in C-contiguous style."""
-    def __init__(self, size_ckp, n_ckp, dtype):
-        size = size_ckp * n_ckp * np.dtype(dtype).itemsize
+    def __init__(self, size_ckp, n_ckp, dtype, auto_pickle=False):
+        size = size_ckp * n_ckp
         self.size_ckp = size_ckp
         self.n_ckp = n_ckp
         self.dtype = dtype
         self.storage = bytearray(size)
+        self.auto_pickle = auto_pickle
 
     """Returns a pointer to the contiguous chunk of memory reserved for the
-    checkpoint with number `key`."""
+    checkpoint with number `key`. May be a copy."""
     def __getitem__(self, key):
+        ptr, start, end = self.get_location(key)
+        return ptr[start:end]
+
+    def get_location(self, key):
         assert(key < self.n_ckp)
-        start = self.size_ckp * np.dtype(self.dtype).itemsize * key
+        start = self.size_ckp * key
         end = start + self.size_ckp * np.dtype(self.dtype).itemsize
         return (self.storage, start, end)
 
+    def save(self, key, data):
+        if not (isinstance(data, bytes) or isinstance(data, bytearray)):
+            if not self.auto_pickle:
+                raise TypeError("Expecting data to be bytes/bytearray but found %s" % type(data))
+            else:
+                data = pickle.dumps(data)
+
+        ptr, start, end = self.get_location(key)
+        allowed_size = end - start
+        actual_size = len(data)
+        assert(actual_size <= allowed_size)
+        ptr[start:(start+actual_size)] = data
+
+    def load(self, key, location):
+        ptr, start, end = self.get_location(key)
+        if self.auto_pickle:
+            data = pickle.loads(ptr[start:end])
+        else:
+            data = ptr[start:end]
+
+        location[:] = data[:]
+        
+        
 
 class Revolver(object):
     """
@@ -99,8 +132,7 @@ class Revolver(object):
           stores live data rather than one of the checkpoints.
     """
 
-    def __init__(self, checkpoint,
-                 fwd_operator, rev_operator,
+    def __init__(self, checkpoint, fwd_operator, rev_operator,
                  n_checkpoints=None, n_timesteps=None, compression_params={}):
         """Initialise checkpointer for a given forward- and reverse operator, a
         given number of time steps, and a given storage strategy. The number of
@@ -114,8 +146,8 @@ class Revolver(object):
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
-        self.storage = BytesStorage(checkpoint.size, n_checkpoints,
-                                         checkpoint.dtype)
+        self.storage = BytesStorage(checkpoint.bytes, n_checkpoints,
+                                         checkpoint.dtype, auto_pickle=True)
         self.n_timesteps = n_timesteps
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)
@@ -135,12 +167,10 @@ class Revolver(object):
                                         t_end=self.scheduler.capo)
             elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.scheduler.cp_pointer],
-                                     self.compressor)
+                self.save_checkpoint()
             elif(action.type == Action.RESTORE):
                 # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.scheduler.cp_pointer],
-                                     self.decompressor)
+                self.load_checkpoint()
             elif(action.type == Action.LASTFW):
                 # final step in the forward computation
                 self.fwd_operator.apply(t_start=self.scheduler.old_capo,
@@ -167,12 +197,10 @@ class Revolver(object):
                                         t_end=self.scheduler.capo)
             elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.scheduler.cp_pointer],
-                                     self.compressor)
+                self.save_checkpoint()
             elif(action.type == Action.RESTORE):
                 # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.scheduler.cp_pointer],
-                                     self.decompressor)
+                self.load_checkpoint()
             elif(action.type == Action.REVERSE):
                 # advance adjoint computation by a single step
                 self.fwd_operator.apply(t_start=self.scheduler.capo,
@@ -183,3 +211,11 @@ class Revolver(object):
                 break
             else:
                 raise ValueError("Unknown action %s" % str(action))
+
+    def save_checkpoint(self):
+        data = self.checkpoint.get_data(self.scheduler.capo)
+        self.storage.save(self.scheduler.cp_pointer, data)
+
+    def load_checkpoint(self):
+        location = self.checkpoint.get_data(self.scheduler.capo)
+        self.storage.load(self.scheduler.cp_pointer, location)
