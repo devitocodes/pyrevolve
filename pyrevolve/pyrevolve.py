@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
-import logging
 import pickle
 
 import numpy as np
@@ -43,7 +42,7 @@ class Checkpoint(object):
         return NotImplemented
 
     @abstractproperty
-    def bytes(self):
+    def nbytes(self):
         """Return the size of a single checkpoint, in number of entries."""
         return NotImplemented
 
@@ -96,7 +95,8 @@ class BytesStorage(object):
     def save(self, key, data):
         if not (isinstance(data, bytes) or isinstance(data, bytearray)):
             if not self.auto_pickle:
-                raise TypeError("Expecting data to be bytes/bytearray but found %s" % type(data))
+                raise TypeError("Expecting data to be bytes/bytearray, " +
+                                "found %s" % type(data))
             else:
                 data = pickle.dumps(data)
 
@@ -108,21 +108,21 @@ class BytesStorage(object):
 
     def load(self, key, location):
         ptr, start, end = self.get_location(key)
-        if self.auto_pickle:
+        if not (isinstance(location, bytes) or
+           isinstance(location, bytearray)) and self.auto_pickle:
             data = pickle.loads(ptr[start:end])
         else:
             data = ptr[start:end]
 
         location[:] = data[:]
-        
-        
+
 
 class Revolver(object):
     """
     This should be the only user-facing class in here. It manages the
     interaction between the operators passed by the user, and the data storage.
 
-    Todo:
+    TODO:
         * Reverse operator is always called for a single step. Change this.
         * Avoid redundant data stores if higher-order stencils save multiple
           time steps, and checkpoints are close together.
@@ -146,8 +146,8 @@ class Revolver(object):
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
-        self.storage = BytesStorage(checkpoint.bytes, n_checkpoints,
-                                         checkpoint.dtype, auto_pickle=True)
+        self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
+                                    checkpoint.dtype, auto_pickle=True)
         self.n_timesteps = n_timesteps
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)
@@ -217,5 +217,5 @@ class Revolver(object):
         self.storage.save(self.scheduler.cp_pointer, data)
 
     def load_checkpoint(self):
-        location = self.checkpoint.get_data(self.scheduler.capo)
+        location = self.checkpoint.get_data_location(self.scheduler.capo)
         self.storage.load(self.scheduler.cp_pointer, location)

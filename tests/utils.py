@@ -4,6 +4,7 @@ from operator import mul
 from functools import reduce
 import pickle
 
+
 def np_ref_address(ptr):
     return ptr.__array_interface__['data'][0]
 
@@ -12,16 +13,14 @@ class SimpleCheckpoint(Checkpoint):
     def __init__(self):
         self.save_counter = 0
         self.load_counter = 0
-        self.save_pointers = set()
-        self.load_pointers = set()
 
-    def save(self, ptr, compressor):
+    def get_data(self, timestep):
         self.save_counter += 1
-        self.save_pointers.add(np_ref_address(ptr))
+        return bytearray()
 
-    def load(self, ptr, decompressor):
+    def get_data_location(self, timestep):
         self.load_counter += 1
-        self.load_pointers.add(np_ref_address(ptr))
+        return bytearray()
 
     @property
     def dtype(self):
@@ -29,6 +28,10 @@ class SimpleCheckpoint(Checkpoint):
 
     @property
     def size(self):
+        return 1
+
+    @property
+    def nbytes(self):
         return 1
 
 
@@ -64,6 +67,9 @@ class YoCheckpoint(Checkpoint):
     def get_data(self, timestep):
         return self.field
 
+    def get_data_location(self, timestep):
+        return self.field
+
     def save(self, ptr, compressor):
         ptr, start, end = ptr
         pickled = pickle.dumps(compressor(self.field[:]))
@@ -86,5 +92,5 @@ class YoCheckpoint(Checkpoint):
         return reduce(mul, self.field.shape)
 
     @property
-    def bytes(self):
+    def nbytes(self):
         return len(pickle.dumps(self.field))

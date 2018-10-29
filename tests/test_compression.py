@@ -38,3 +38,5 @@ def test_complete():
     assert(np.all(np.isclose(a, np.zeros(shape) + nt)))
     revolver.apply_reverse()
     assert(np.all(np.isclose(a, np.zeros(shape))))
+
+# TODO: test that compression is actually used when enabled in user API
