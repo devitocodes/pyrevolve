@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
 import pickle
+import logging
 
 import numpy as np
 
@@ -9,6 +10,9 @@ except ImportError:
     import crevolve as cr
 from .compression import init_compression as init
 from .schedulers import Revolve, Action
+
+
+logger = logging.getLogger("pyRevolve")
 
 
 class Operator(object):
@@ -72,13 +76,14 @@ class BytesStorage(object):
 
     """Allocates memory on initialisation. Requires number of checkpoints and
     size of one checkpoint. Memory is allocated in C-contiguous style."""
-    def __init__(self, size_ckp, n_ckp, dtype, auto_pickle=False):
+    def __init__(self, size_ckp, n_ckp, dtype, compression, auto_pickle=False):
         size = size_ckp * n_ckp
         self.size_ckp = size_ckp
         self.n_ckp = n_ckp
         self.dtype = dtype
         self.storage = bytearray(size)
         self.auto_pickle = auto_pickle
+        self.compressor, self.decompressor = compression
 
     """Returns a pointer to the contiguous chunk of memory reserved for the
     checkpoint with number `key`. May be a copy."""
@@ -93,6 +98,8 @@ class BytesStorage(object):
         return (self.storage, start, end)
 
     def save(self, key, data):
+        logger.debug("ByteStorage: Saving to location %d" % key)
+        data = self.compressor(data)
         if not (isinstance(data, bytes) or isinstance(data, bytearray)):
             if not self.auto_pickle:
                 raise TypeError("Expecting data to be bytes/bytearray, " +
@@ -104,9 +111,10 @@ class BytesStorage(object):
         allowed_size = end - start
         actual_size = len(data)
         assert(actual_size <= allowed_size)
-        ptr[start:(start+actual_size)] = data
+        self.storage[start:(start+actual_size)] = data
 
     def load(self, key, location):
+        logger.debug("ByteStorage: Loading from location %d" % key)
         ptr, start, end = self.get_location(key)
         if not (isinstance(location, bytes) or
            isinstance(location, bytearray)) and self.auto_pickle:
@@ -114,7 +122,7 @@ class BytesStorage(object):
         else:
             data = ptr[start:end]
 
-        location[:] = data[:]
+        location[:] = self.decompressor(data)
 
 
 class Revolver(object):
@@ -146,13 +154,14 @@ class Revolver(object):
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
+        compressor, decompressor = init(compression_params)
         self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
-                                    checkpoint.dtype, auto_pickle=True)
+                                    checkpoint.dtype, auto_pickle=True,
+                                    compression=(compressor, decompressor))
         self.n_timesteps = n_timesteps
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)
         # cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
-        self.compressor, self.decompressor = init(compression_params)
 
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,

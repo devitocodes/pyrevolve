@@ -11,12 +11,16 @@ DEFAULTS = {None: {}, 'blosc': {'chunk_size': 1000000},
 
 def init_compression(params):
     scheme = params.pop('scheme', None)
-    compressor = compressors[scheme]
-    decompressor = decompressors[scheme]
-    default_values = DEFAULTS[scheme]
-    for k, v in default_values.items():
-        if k not in params:
-            params[k] = v
+    if scheme == 'custom':
+        compressor = params.pop('compressor', None)
+        decompressor = params.pop('decompressor', None)
+    else:
+        compressor = compressors[scheme]
+        decompressor = decompressors[scheme]
+        default_values = DEFAULTS[scheme]
+        for k, v in default_values.items():
+            if k not in params:
+                params[k] = v
     part_compressor = partial(compressor, params)
     part_decompressor = partial(decompressor, params)
     return part_compressor, part_decompressor
