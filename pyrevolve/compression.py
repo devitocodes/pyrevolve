@@ -32,7 +32,7 @@ def identity(params, indata):
 
 def blosc_compress(params, indata):
     s = indata.tostring()
-    chunk_size = params.pop('chunk_size')
+    chunk_size = params.get('chunk_size')
     chunked = [s[i:i+chunk_size] for i in range(0, len(s), chunk_size)]
     time = 0
     size = 0

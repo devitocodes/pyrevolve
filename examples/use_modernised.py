@@ -81,6 +81,10 @@ class MyCheckpoint(pr.Checkpoint):
             self.symbols[i].data[:] = decompressor(ptr[i_ptr_lo:i_ptr_hi])
             i_ptr_lo = i_ptr_hi
 
+    def get_data_location(self, timestep):
+        print(self.symbols)
+        return [x.data for x in self.symbols.values()]
+
     @property
     def size(self):
         """The memory consumption of the data contained in this checkpoint."""
@@ -92,6 +96,10 @@ class MyCheckpoint(pr.Checkpoint):
     @property
     def dtype(self):
         return np.float32
+
+    @property
+    def nbytes(self):
+        return self.size * np.dtype(self.dtype).itemsize
 
 
 nSteps = 30

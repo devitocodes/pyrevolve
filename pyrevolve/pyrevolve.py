@@ -1,6 +1,4 @@
 from abc import ABCMeta, abstractproperty, abstractmethod
-import pickle
-import logging
 
 import numpy as np
 
@@ -10,10 +8,9 @@ except ImportError:
     import crevolve as cr
 from .compression import init_compression as init
 from .schedulers import Revolve, Action
-
-
-logger = logging.getLogger("pyRevolve")
-
+from .logger import logger
+from . import custom_pickle as pickle
+import hashlib
 
 class Operator(object):
     """ Abstract base class for an Operator that may be used with pyRevolve."""
@@ -45,10 +42,9 @@ class Checkpoint(object):
         """Deep-copy live data into the numpy array `ptr`."""
         return NotImplemented
 
-    @abstractproperty
+    @property
     def nbytes(self):
-        """Return the size of a single checkpoint, in number of entries."""
-        return NotImplemented
+        return self.size * np.dtype(self.dtype).itemsize
 
 
 class NumpyStorage(object):
@@ -61,11 +57,22 @@ class NumpyStorage(object):
     size of one checkpoint. Memory is allocated in C-contiguous style."""
     def __init__(self, size_ckp, n_ckp, dtype):
         self.storage = np.zeros((n_ckp, size_ckp), order='C', dtype=dtype)
+        self.shapes = {}
 
     """Returns a pointer to the contiguous chunk of memory reserved for the
     checkpoint with number `key`."""
     def __getitem__(self, key):
         return self.storage[key, :]
+
+    def save(self, key, data):
+        print(data.shape)
+        slot = self[key]
+        slot[:] = data.flatten()[:]
+        self.shapes[key] = data.shape
+
+    def load(self, key, location):
+        slot = self[key]
+        location[:] = slot[:].reshape(self.shapes[key])
 
 
 class BytesStorage(object):
@@ -84,6 +91,7 @@ class BytesStorage(object):
         self.storage = bytearray(size)
         self.auto_pickle = auto_pickle
         self.compressor, self.decompressor = compression
+        self.lengths = {}
 
     """Returns a pointer to the contiguous chunk of memory reserved for the
     checkpoint with number `key`. May be a copy."""
@@ -99,6 +107,7 @@ class BytesStorage(object):
 
     def save(self, key, data):
         logger.debug("ByteStorage: Saving to location %d" % key)
+        logger.debug(np.linalg.norm(data))
         data = self.compressor(data)
         if not (isinstance(data, bytes) or isinstance(data, bytearray)):
             if not self.auto_pickle:
@@ -106,23 +115,36 @@ class BytesStorage(object):
                                 "found %s" % type(data))
             else:
                 data = pickle.dumps(data)
-
+        
         ptr, start, end = self.get_location(key)
+        logger.debug("Start: %d, End: %d" % (start, end))
         allowed_size = end - start
         actual_size = len(data)
+        logger.debug("Actual size: %d" % actual_size)
+        logger.debug(hashlib.md5(data).hexdigest())
         assert(actual_size <= allowed_size)
         self.storage[start:(start+actual_size)] = data
+        self.lengths[key] = actual_size
+        logger.debug(hashlib.md5(self.storage[start:(start+actual_size)]).hexdigest())
+        logger.debug(hashlib.md5(self.storage[start:end]).hexdigest())
+        logger.debug("Saved")
 
     def load(self, key, location):
         logger.debug("ByteStorage: Loading from location %d" % key)
         ptr, start, end = self.get_location(key)
+        actual_size = self.lengths[key]
+        logger.debug("Start: %d, End: %d" % (start, end))
         if not (isinstance(location, bytes) or
            isinstance(location, bytearray)) and self.auto_pickle:
-            data = pickle.loads(ptr[start:end])
+            logger.debug(hashlib.md5(self.storage[start:(start+actual_size)]).hexdigest())
+            logger.debug(str(self.storage[start:(start+actual_size)]))
+            data = pickle.loads(self.storage[start:(start+actual_size)])
         else:
-            data = ptr[start:end]
-
+            data = self.storage[start:(start+actual_size)]
+        
+        logger.debug(np.linalg.norm(data))
         location[:] = self.decompressor(data)
+        logger.debug("ByteStorage: Load complete")
 
 
 class Revolver(object):
@@ -155,9 +177,10 @@ class Revolver(object):
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
         compressor, decompressor = init(compression_params)
-        self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
-                                    checkpoint.dtype, auto_pickle=True,
-                                    compression=(compressor, decompressor))
+        self.storage = NumpyStorage(checkpoint.size, n_checkpoints, checkpoint.dtype)
+        #self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
+        #                            checkpoint.dtype, auto_pickle=True,
+        #                            compression=(compressor, decompressor))
         self.n_timesteps = n_timesteps
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)

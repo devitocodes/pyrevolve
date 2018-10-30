@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from pyrevolve.compression import (compressors, decompressors, allowed_names,
                                    init_compression)
@@ -22,7 +23,8 @@ def test_all_reversible():
         assert(np.all(np.isclose(a, decompressed)))
 
 
-def test_complete():
+@pytest.mark.parametrize("scheme", [None, 'blosc', 'zfp'])
+def test_complete(scheme):
     nt = 100
     ncp = 10
     shape = (10, 10)
@@ -31,7 +33,7 @@ def test_complete():
     fwd = IncrementOperator(1, a)
     rev = IncrementOperator(-1, a)
     cp = YoCheckpoint(a)
-    compression_params = {'scheme': 'zfp'}
+    compression_params = {'scheme': scheme}
     revolver = Revolver(cp, fwd, rev, ncp, nt,
                         compression_params=compression_params)
     revolver.apply_forward()
