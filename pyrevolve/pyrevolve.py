@@ -11,6 +11,49 @@ from .schedulers import Revolve, Action
 from .logger import logger
 from . import custom_pickle as pickle
 import hashlib
+from timeit import default_timer
+
+
+class Timer(object):
+    def __init__(self, profiler, section, action):
+        self.timer = default_timer
+        self.profiler = profiler
+        self.section = section
+        self.action = action
+        
+    def __enter__(self):
+        self.start = self.timer()
+        return self
+        
+    def __exit__(self, *args):
+        end = self.timer()
+        self.elapsed_secs = end - self.start
+        self.elapsed = self.elapsed_secs * 1000  # millisecs
+        self.profiler.increment(self.section, self.action, self.elapsed)
+
+        
+class Profiler(object):
+    def __init__(self):
+        self.timings = {}
+
+    def get_timer(self, section, action):
+        return Timer(self, section, action)
+
+    def increment(self, section, action, elapsed):
+        # Warning: Not thread safe
+        section_timings = self.timings.get(section, {})
+        section_timings[action] = section_timings.get(action, 0) + elapsed
+        self.timings[section] = section_timings
+
+    def summary(self):
+        summary = '****************'
+        for section, section_timings in self.timings.items():
+            summary += '\nIn section %s:' % section
+            for action, action_time in section_timings.items():
+                summary += '\n\tAction %s: %f' % (action, action_time)
+        summary += '\n****************'
+        return summary
+
 
 class Operator(object):
     """ Abstract base class for an Operator that may be used with pyRevolve."""
@@ -162,7 +205,7 @@ class Revolver(object):
     """
 
     def __init__(self, checkpoint, fwd_operator, rev_operator,
-                 n_checkpoints=None, n_timesteps=None, compression_params={}):
+                 n_checkpoints=None, n_timesteps=None, timings=None, compression_params=None):
         """Initialise checkpointer for a given forward- and reverse operator, a
         given number of time steps, and a given storage strategy. The number of
         time steps must currently be provided explicitly, and the storage must
@@ -172,6 +215,9 @@ class Revolver(object):
                               number of time steps!")
         if(n_checkpoints is None):
             n_checkpoints = cr.adjust(n_timesteps)
+        if compression_params is None:
+            compression_params = {}
+        self.timings = timings
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
@@ -183,6 +229,7 @@ class Revolver(object):
         self.n_timesteps = n_timesteps
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)
+        self.profiler = Profiler()
         # cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
 
     def apply_forward(self):
@@ -194,18 +241,18 @@ class Revolver(object):
             action = self.scheduler.next()
             if(action.type == Action.ADVANCE):
                 # advance forward computation
-                self.fwd_operator.apply(t_start=self.scheduler.old_capo,
-                                        t_end=self.scheduler.capo)
+                with self.profiler.get_timer('forward', 'advance'):
+                    self.fwd_operator.apply(t_start=self.scheduler.old_capo,
+                                            t_end=self.scheduler.capo)
             elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.save_checkpoint()
-            elif(action.type == Action.RESTORE):
-                # restore a snapshot: copy from storage into workspace
-                self.load_checkpoint()
+                with self.profiler.get_timer('forward', 'takeshot'):
+                    self.save_checkpoint()
             elif(action.type == Action.LASTFW):
                 # final step in the forward computation
-                self.fwd_operator.apply(t_start=self.scheduler.old_capo,
-                                        t_end=self.n_timesteps)
+                with self.profiler.get_timer('forward', 'lastfw'):
+                    self.fwd_operator.apply(t_start=self.scheduler.old_capo,
+                                            t_end=self.n_timesteps)
                 break
             else:
                 raise ValueError("Unknown action %s" % str(action))
@@ -216,28 +263,33 @@ class Revolver(object):
         recompute sections of the trajectory that have not been stored in the
         forward run."""
 
-        self.rev_operator.apply(t_start=self.scheduler.capo,
-                                t_end=self.scheduler.capo+1)
+        with self.profiler.get_timer('reverse', 'reverse'):
+            self.rev_operator.apply(t_start=self.scheduler.capo,
+                                    t_end=self.scheduler.capo+1)
 
         while(True):
             # ask Revolve what to do next.
             action = self.scheduler.next()
             if(action.type == Action.ADVANCE):
                 # advance forward computation
-                self.fwd_operator.apply(t_start=self.scheduler.old_capo,
-                                        t_end=self.scheduler.capo)
+                with self.profiler.get_timer('reverse', 'advance'):
+                    self.fwd_operator.apply(t_start=self.scheduler.old_capo,
+                                            t_end=self.scheduler.capo)
             elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.save_checkpoint()
+                with self.profiler.get_timer('reverse', 'takeshot'):
+                    self.save_checkpoint()
             elif(action.type == Action.RESTORE):
                 # restore a snapshot: copy from storage into workspace
-                self.load_checkpoint()
+                with self.profiler.get_timer('reverse', 'restore'):
+                    self.load_checkpoint()
             elif(action.type == Action.REVERSE):
                 # advance adjoint computation by a single step
-                self.fwd_operator.apply(t_start=self.scheduler.capo,
-                                        t_end=self.scheduler.capo+1)
-                self.rev_operator.apply(t_start=self.scheduler.capo,
-                                        t_end=self.scheduler.capo+1)
+                with self.profiler.get_timer('reverse', 'reverse'):
+                    self.fwd_operator.apply(t_start=self.scheduler.capo,
+                                            t_end=self.scheduler.capo+1)
+                    self.rev_operator.apply(t_start=self.scheduler.capo,
+                                            t_end=self.scheduler.capo+1)
             elif(action.type == Action.TERMINATE):
                 break
             else:
