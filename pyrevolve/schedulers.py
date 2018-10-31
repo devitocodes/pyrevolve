@@ -13,8 +13,13 @@ class Action(object):
     CPDEL = 5
     TERMINATE = 6
 
+    type_names = {ADVANCE: 'ADVANCE', TAKESHOT: 'TAKESHOT', RESTORE: 'RESTORE', LASTFW: 'LASTFW', REVERSE: 'REVERSE', CPDEL: 'CPDEL', TERMINATE: 'TERMINATE'}
+
     def __init__(self, action_type):
         self.type = action_type
+
+    def __repr__(self):
+        return "Action (%s)" % self.type_names[self.type]
 
 
 class CRevolve(object):

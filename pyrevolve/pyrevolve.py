@@ -65,7 +65,6 @@ class NumpyStorage(object):
         return self.storage[key, :]
 
     def save(self, key, data):
-        print(data.shape)
         slot = self[key]
         slot[:] = data.flatten()[:]
         self.shapes[key] = data.shape
@@ -209,7 +208,7 @@ class Revolver(object):
                                         t_end=self.n_timesteps)
                 break
             else:
-                raise ValueError("Unknown action %d" % action)
+                raise ValueError("Unknown action %s" % str(action))
 
     def apply_reverse(self):
         """Executes only the backward computation while loading checkpoints,
