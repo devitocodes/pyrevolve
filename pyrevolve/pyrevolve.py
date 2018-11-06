@@ -59,6 +59,18 @@ class Profiler(object):
         summary += '\n****************'
         return summary
 
+    def get_dict(self):
+        results = {}
+        for s_n, s_dict in self.timings.items():
+            for a_n, a_time in s_dict.items():
+                results['%s_%s_timing' % (s_n, a_n)] = a_time
+
+        for s_n, s_dict in self.counts.items():
+            for a_n, a_time in s_dict.items():
+                results['%s_%s_counts' % (s_n, a_n)] = a_time
+
+        return results
+
 
 class Operator(object):
     """ Abstract base class for an Operator that may be used with pyRevolve."""

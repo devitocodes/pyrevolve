@@ -76,6 +76,12 @@ cdef class CRevolve(object):
     def info(self):
         return revolve_c.revolve_getinfo(self.__r)
 
+
+    @info.setter
+    def info(self, val):
+        cdef int value
+        revolve_c.revolve_set_info(self.__r, value)
+
     def revolve(self):
         cdef revolve_c.CACTION action
         action = revolve_c.revolve(self.__r)
