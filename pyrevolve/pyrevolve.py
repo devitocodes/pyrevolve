@@ -126,12 +126,13 @@ class NumpyStorage(object):
 
     def save(self, key, data):
         slot = self[key]
-        slot[:] = data.flatten()[:]
+        np.copyto(slot, data.flatten())
         self.shapes[key] = data.shape
 
     def load(self, key, location):
         slot = self[key]
-        location[:] = slot[:].reshape(self.shapes[key])
+        np.copyto(location, slot.reshape(self.shapes[key]))
+        #location[:] = slot[:].reshape(self.shapes[key])
 
 
 class BytesStorage(object):
