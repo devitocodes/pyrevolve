@@ -3,6 +3,9 @@ cimport revolve_c
 from enum import Enum
 import warnings
 
+from tools import OutputGrabber
+
+
 class RevolveError(Exception):
     pass
     # TODO: the hardcoded limits really should be removed in a future version. This should be as easy as replacing the arrays in the C++ code with an std::vector.
@@ -76,15 +79,10 @@ cdef class CRevolve(object):
     def info(self):
         return revolve_c.revolve_getinfo(self.__r)
 
-
-    @info.setter
-    def info(self, val):
-        cdef int value
-        revolve_c.revolve_set_info(self.__r, value)
-
     def revolve(self):
         cdef revolve_c.CACTION action
-        action = revolve_c.revolve(self.__r)
+        with OutputGrabber() as og:
+             action = revolve_c.revolve(self.__r)
         if(action == revolve_c.CACTION_ADVANCE):
             retAction = Action.advance
         elif(action == revolve_c.CACTION_TAKESHOT):

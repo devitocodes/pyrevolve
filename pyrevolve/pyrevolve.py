@@ -126,13 +126,14 @@ class NumpyStorage(object):
 
     def save(self, key, data):
         slot = self[key]
-        np.copyto(slot, data.flatten())
+        slot.shape = data.shape
+        np.copyto(slot, data)
         self.shapes[key] = data.shape
 
     def load(self, key, location):
         slot = self[key]
-        np.copyto(location, slot.reshape(self.shapes[key]))
-        #location[:] = slot[:].reshape(self.shapes[key])
+        slot.shape = self.shapes[key]
+        np.copyto(location, slot)
 
 
 class BytesStorage(object):
@@ -248,7 +249,6 @@ class Revolver(object):
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)
         self.profiler = Profiler()
-        # cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
 
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,

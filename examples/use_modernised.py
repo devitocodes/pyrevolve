@@ -82,8 +82,10 @@ class MyCheckpoint(pr.Checkpoint):
             i_ptr_lo = i_ptr_hi
 
     def get_data_location(self, timestep):
-        print(self.symbols)
-        return [x.data for x in self.symbols.values()]
+        return next(iter(self.symbols.values())).data
+
+    def get_data(self, timestep):
+        return next(iter(self.symbols.values())).data
 
     @property
     def size(self):
