@@ -10,6 +10,12 @@ matrix:
     - os: linux
       python: "2.7"
       env: PYTHONPATH=$PWD
+    - os: osx
+      python: "3.6"
+      env: PYTHONPATH=$PWD
+    - os: osx
+      python: "2.7"
+      env: PYTHONPATH=$PWD
 
 addons:
   apt:
