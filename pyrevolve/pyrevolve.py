@@ -12,6 +12,8 @@ from .logger import logger
 from . import custom_pickle as pickle
 import hashlib
 from timeit import default_timer
+from functools import reduce
+from operator import mul
 
 
 class Timer(object):
@@ -124,16 +126,24 @@ class NumpyStorage(object):
     def __getitem__(self, key):
         return self.storage[key, :]
 
-    def save(self, key, data):
+    def save(self, key, data_pointers):
         slot = self[key]
-        slot.shape = data.shape
-        np.copyto(slot, data)
-        self.shapes[key] = data.shape
+        offset = 0
+        shapes = []
+        for ptr in data_pointers:
+            data = ptr.flatten()
+            np.copyto(slot[offset:len(data)+offset], ptr.flatten())
+            offset += len(data)
+            shapes.append(ptr.shape)
+        self.shapes[key] = shapes
 
-    def load(self, key, location):
+    def load(self, key, locations):
         slot = self[key]
-        slot.shape = self.shapes[key]
-        np.copyto(location, slot)
+        offset = 0
+        for shape, ptr in zip(self.shapes[key], locations):
+            size = reduce(mul, ptr.shape)
+            np.copyto(ptr, slot[offset:offset+size].reshape(ptr.shape))
+            offset += size
 
 
 class BytesStorage(object):
@@ -314,9 +324,9 @@ class Revolver(object):
                 raise ValueError("Unknown action %s" % str(action))
 
     def save_checkpoint(self):
-        data = self.checkpoint.get_data(self.scheduler.capo)
-        self.storage.save(self.scheduler.cp_pointer, data)
+        data_pointers = self.checkpoint.get_data(self.scheduler.capo)
+        self.storage.save(self.scheduler.cp_pointer, data_pointers)
 
     def load_checkpoint(self):
-        location = self.checkpoint.get_data_location(self.scheduler.capo)
-        self.storage.load(self.scheduler.cp_pointer, location)
+        locations = self.checkpoint.get_data_location(self.scheduler.capo)
+        self.storage.load(self.scheduler.cp_pointer, locations)
