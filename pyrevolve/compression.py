@@ -1,5 +1,5 @@
 import blosc
-import zfp
+import pyzfp
 import numpy as np
 from contexttimer import Timer
 from functools import partial

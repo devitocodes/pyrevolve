@@ -5,7 +5,7 @@ import numpy as np
 try:
     import pyrevolve.crevolve as cr
 except ImportError:
-    import crevolve as cr
+    from . import crevolve as cr
 from .compression import init_compression as init
 from .schedulers import Revolve, Action
 from .logger import logger
@@ -117,9 +117,10 @@ class NumpyStorage(object):
 
     """Allocates memory on initialisation. Requires number of checkpoints and
     size of one checkpoint. Memory is allocated in C-contiguous style."""
-    def __init__(self, size_ckp, n_ckp, dtype):
+    def __init__(self, size_ckp, n_ckp, dtype, profiler):
         self.storage = np.zeros((n_ckp, size_ckp), order='C', dtype=dtype)
         self.shapes = {}
+        self.profiler = profiler
 
     """Returns a pointer to the contiguous chunk of memory reserved for the
     checkpoint with number `key`."""
@@ -131,8 +132,10 @@ class NumpyStorage(object):
         offset = 0
         shapes = []
         for ptr in data_pointers:
-            data = ptr.flatten()
-            np.copyto(slot[offset:len(data)+offset], ptr.flatten())
+            with self.profiler.get_timer('storage', 'flatten'):
+                data = ptr.ravel()
+            with self.profiler.get_timer('storage', 'copy_save'):
+                np.copyto(slot[offset:len(data)+offset], data)
             offset += len(data)
             shapes.append(ptr.shape)
         self.shapes[key] = shapes
@@ -142,7 +145,8 @@ class NumpyStorage(object):
         offset = 0
         for shape, ptr in zip(self.shapes[key], locations):
             size = reduce(mul, ptr.shape)
-            np.copyto(ptr, slot[offset:offset+size].reshape(ptr.shape))
+            with self.profiler.get_timer('storage', 'copy_load'):
+                np.copyto(ptr, slot[offset:offset+size].reshape(ptr.shape))
             offset += size
 
 
@@ -251,14 +255,14 @@ class Revolver(object):
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
         compressor, decompressor = init(compression_params)
-        self.storage = NumpyStorage(checkpoint.size, n_checkpoints, checkpoint.dtype)
+        self.profiler = Profiler()
+        self.storage = NumpyStorage(checkpoint.size, n_checkpoints, checkpoint.dtype, profiler=self.profiler)
         #self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
         #                            checkpoint.dtype, auto_pickle=True,
         #                            compression=(compressor, decompressor))
         self.n_timesteps = n_timesteps
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)
-        self.profiler = Profiler()
 
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,
