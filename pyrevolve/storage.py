@@ -1,3 +1,8 @@
+import numpy as np
+from functools import reduce
+from operator import mul
+
+
 class NumpyStorage(object):
     """Holds a chunk of memory large enough to store all checkpoints. The
     []-operator is overloaded to return a pointer to the memory reserved for a
@@ -21,6 +26,7 @@ class NumpyStorage(object):
         offset = 0
         shapes = []
         for ptr in data_pointers:
+            assert(ptr.flags.c_contiguous)
             with self.profiler.get_timer('storage', 'flatten'):
                 data = ptr.ravel()
             with self.profiler.get_timer('storage', 'copy_save'):

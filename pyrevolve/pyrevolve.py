@@ -9,10 +9,10 @@ except ImportError:
 from .compression import init_compression as init
 from .schedulers import Revolve, Action
 from .logger import logger
+from .profiling import Profiler
+from .storage import NumpyStorage, BytesStorage
 from . import custom_pickle as pickle
 import hashlib
-from functools import reduce
-from operator import mul
 
 
 class Operator(object):
