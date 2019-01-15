@@ -1,15 +1,18 @@
 import blosc
 import pyzfp
+import pysz
 import numpy as np
 from contexttimer import Timer
 from functools import partial
+import pickle
 
 
 DEFAULTS = {None: {}, 'blosc': {'chunk_size': 1000000},
-            'zfp': {'tolerance': 0.0000001}}
+            'zfp': {'tolerance': 0.0000001, 'parallel': True}}
 
 
 def init_compression(params):
+    params = params.copy()
     scheme = params.pop('scheme', None)
     if scheme == 'custom':
         compressor = params.pop('compressor', None)
@@ -26,8 +29,11 @@ def init_compression(params):
     return part_compressor, part_decompressor
 
 
-def identity(params, indata):
-    return indata
+def no_compression_in(params, indata):
+    return CompressedObject(memoryview(indata), shape=indata.shape, dtype=indata.dtype)
+
+def no_compression_out(params, indata):
+    return np.array(indata.data, shape=indata.shape, dtype=indata.dtype)
 
 
 def blosc_compress(params, indata):
@@ -47,8 +53,8 @@ def blosc_compress(params, indata):
         chunk_sizes.append(len(c))
 
     # ratio = round(len(s)/float(size), 3)
-    return {'data': compressed, 'chunks': chunk_sizes, 'shape': indata.shape,
-            'dtype': indata.dtype}
+    return str({'data': compressed, 'chunks': chunk_sizes, 'shape': indata.shape,
+            'dtype': indata.dtype}).encode('utf-8')
 
 
 def blosc_decompress(params, indata):
@@ -65,18 +71,41 @@ def blosc_decompress(params, indata):
     return np.fromstring(decompressed,
                          dtype=indata['dtype']).reshape(indata['shape'])
 
+class CompressedObject(object):
+    def __init__(self, data, shape=None, dtype=None, metadata=None):
+        assert(metadata is None or (shape is None and dtype is None))
+        if metadata is not None:
+            assert('shape' in metadata and 'dtype' in metadata)
+            shape = metadata['shape']
+            dtype = metadata['dtype']
+        else:
+            metadata = {'shape': shape, 'dtype': dtype}
+        self.shape = shape
+        self.dtype = dtype
+        self.data = data
+        self.metadata = metadata
+        self.pickled_metadata = pickle.dumps(self.metadata)
+
 
 def zfp_compress(params, indata):
-    return {'data': zfp.compress(indata, **params), 'shape': indata.shape,
-            'dtype': indata.dtype}
+    return CompressedObject(memoryview(pyzfp.compress(indata, **params)), shape=indata.shape, dtype=indata.dtype)
 
 
 def zfp_decompress(params, indata):
-    return zfp.decompress(indata['data'], indata['shape'], indata['dtype'],
+    assert(isinstance(indata, CompressedObject))
+    return pyzfp.decompress(indata.data, indata.shape, indata.dtype,
                           **params)
 
+def sz_compress(params, indata):
+    return str({'data': pysz.compress(indata, **params), 'shape': indata.shape,
+            'dtype': indata.dtype}).encode('utf-8')
 
-compressors = {None: identity, 'blosc': blosc_compress, 'zfp': zfp_compress}
-decompressors = {None: identity, 'blosc': blosc_decompress,
-                 'zfp': zfp_decompress}
-allowed_names = [None, 'blosc', 'zfp']
+
+def sz_decompress(params, indata):
+    return pysz.decompress(indata['data'], indata['shape'], indata['dtype'])
+
+
+compressors = {None: no_compression_in, 'blosc': blosc_compress, 'zfp': zfp_compress, 'sz': sz_compress}
+decompressors = {None: no_compression_out, 'blosc': blosc_decompress,
+                 'zfp': zfp_decompress, 'sz': sz_decompress}
+allowed_names = [None, 'blosc', 'zfp', 'sz']

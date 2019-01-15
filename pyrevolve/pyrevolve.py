@@ -84,10 +84,12 @@ class Revolver(object):
         self.checkpoint = checkpoint
         compressor, decompressor = init(compression_params)
         self.profiler = Profiler()
-        self.storage = NumpyStorage(checkpoint.size, n_checkpoints, checkpoint.dtype, profiler=self.profiler)
-        #self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
-        #                            checkpoint.dtype, auto_pickle=True,
-        #                            compression=(compressor, decompressor))
+        if compression_params['scheme'] == None:
+            self.storage = NumpyStorage(checkpoint.size, n_checkpoints, checkpoint.dtype, profiler=self.profiler)
+        else:
+            self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
+                                    checkpoint.dtype, auto_pickle=True,
+                                    compression=(compressor, decompressor))
         self.n_timesteps = n_timesteps
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)

@@ -2,6 +2,11 @@ import numpy as np
 from functools import reduce
 from operator import mul
 
+from .logger import logger
+from .compression import CompressedObject
+import hashlib
+import pickle
+
 
 class NumpyStorage(object):
     """Holds a chunk of memory large enough to store all checkpoints. The
@@ -26,7 +31,7 @@ class NumpyStorage(object):
         offset = 0
         shapes = []
         for ptr in data_pointers:
-            assert(ptr.flags.c_contiguous)
+            assert(ptr.strides[-1]==ptr.itemsize)
             with self.profiler.get_timer('storage', 'flatten'):
                 data = ptr.ravel()
             with self.profiler.get_timer('storage', 'copy_save'):
@@ -58,10 +63,11 @@ class BytesStorage(object):
         self.size_ckp = size_ckp
         self.n_ckp = n_ckp
         self.dtype = dtype
-        self.storage = bytearray(size)
+        self.storage = memoryview(bytearray(size))
         self.auto_pickle = auto_pickle
         self.compressor, self.decompressor = compression
         self.lengths = {}
+        self.metadata = {}
 
     """Returns a pointer to the contiguous chunk of memory reserved for the
     checkpoint with number `key`. May be a copy."""
@@ -77,41 +83,62 @@ class BytesStorage(object):
 
     def save(self, key, data):
         logger.debug("ByteStorage: Saving to location %d" % key)
-        logger.debug(np.linalg.norm(data))
-        data = self.compressor(data)
-        if not (isinstance(data, bytes) or isinstance(data, bytearray)):
-            if not self.auto_pickle:
-                raise TypeError("Expecting data to be bytes/bytearray, " +
-                                "found %s" % type(data))
-            else:
-                data = pickle.dumps(data)
-        
+        dataset = [self.compressor(x) for x in data]
+        logger.debug("ByteStorage: Compression complete")
+        offset = 0
+        sizes = []
+        metadatas = []
         ptr, start, end = self.get_location(key)
-        logger.debug("Start: %d, End: %d" % (start, end))
-        allowed_size = end - start
-        actual_size = len(data)
-        logger.debug("Actual size: %d" % actual_size)
-        logger.debug(hashlib.md5(data).hexdigest())
-        assert(actual_size <= allowed_size)
-        self.storage[start:(start+actual_size)] = data
-        self.lengths[key] = actual_size
-        logger.debug(hashlib.md5(self.storage[start:(start+actual_size)]).hexdigest())
-        logger.debug(hashlib.md5(self.storage[start:end]).hexdigest())
-        logger.debug("Saved")
+        for compressed_object in dataset:
+            if not (isinstance(compressed_object, CompressedObject)):
+                print(type(compressed_object))
+                if not self.auto_pickle:
+                    raise TypeError("Expecting data to be bytes/bytearray, " +
+                                "found %s" % type(compressed_object))
+                else:
+                    assert(isinstance(data, tuple) and len(data) == 2)
+                    data, metadata = data
+                    data = pickle.dumps(metadata)
+            compressed_data = compressed_object.data
+            metadata = compressed_object.metadata
+            start += offset
+            logger.debug("Start: %d, End: %d" % (start, end))
+            allowed_size = end - start
+            actual_size = len(compressed_data)
+            logger.debug("Actual size: %d" % actual_size)
+            #logger.debug(hashlib.md5(compressed_data).hexdigest())
+            assert(actual_size <= allowed_size)
+            self.storage[start:(start+actual_size)] = compressed_data
+            sizes.append(actual_size)
+            offset += actual_size
+            metadatas.append(metadata)
+            #logger.debug(hashlib.md5(self.storage[start:(start+actual_size)]).hexdigest())
+            #logger.debug(hashlib.md5(self.storage[start:end]).hexdigest())
+            logger.debug("Saved")
+        self.lengths[key] = sizes
+        self.metadata[key] = metadatas
 
-    def load(self, key, location):
+    def load(self, key, locations):
         logger.debug("ByteStorage: Loading from location %d" % key)
         ptr, start, end = self.get_location(key)
-        actual_size = self.lengths[key]
-        logger.debug("Start: %d, End: %d" % (start, end))
-        if not (isinstance(location, bytes) or
-           isinstance(location, bytearray)) and self.auto_pickle:
-            logger.debug(hashlib.md5(self.storage[start:(start+actual_size)]).hexdigest())
-            logger.debug(str(self.storage[start:(start+actual_size)]))
-            data = pickle.loads(self.storage[start:(start+actual_size)])
-        else:
-            data = self.storage[start:(start+actual_size)]
+        sizes = self.lengths[key]
+        metadatas = self.metadata[key]
+
+        assert(len(locations) == len(sizes) == len(metadatas))
         
-        logger.debug(np.linalg.norm(data))
-        location[:] = self.decompressor(data)
+        #if not (isinstance(location, bytes) or
+        #   isinstance(location, bytearray)) and self.auto_pickle:
+        #    logger.debug(hashlib.md5(self.storage[start:(start+actual_size)]).hexdigest())
+        #    logger.debug(str(self.storage[start:(start+actual_size)]))
+        #    data = pickle.loads(self.storage[start:(start+actual_size)])
+        #else:
+        offset = 0
+        for actual_size, metadata, location in zip(sizes, metadatas, locations):
+            logger.debug("Start: %d, End: %d" % (start, end))
+            start += offset
+            compressed_data = self.storage[start:(start+actual_size)]
+            compressed_object = CompressedObject(compressed_data, metadata=metadata)
+            logger.debug(np.linalg.norm(compressed_data))
+            location[:] = self.decompressor(compressed_object)
+            offset += actual_size
         logger.debug("ByteStorage: Load complete")
