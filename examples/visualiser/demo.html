@@ -1,0 +1,26 @@
+<html>
+<head>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="demo.js"></script>
+<div id="compute_container">
+<div id="forward_container">
+</div>
+<div id="reverse_container">
+</div>
+</div>
+<div id="memory_container">
+</div>
+<div class="controls">
+<input type="button" value="Add step" onclick="add_compute_step()" />
+<input type="button" value="Add Memory slot" onclick="add_memory_slot()" />
+<input type="text" id="elementName" />
+<input type="text" id="state" />
+<input type="button" value="Change state" onclick="change_state()" />
+<input type="button" value="Setup" onclick="setup()" />
+<input type="button" id="RunButton" value="Run" onclick="run()" style="display:None;"/>
+</div>
+</body>
+</html>

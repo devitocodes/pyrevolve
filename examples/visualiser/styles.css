@@ -1,0 +1,80 @@
+.compute_step_forward_undone {
+    background-image: url("arrow-right-empty.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+#compute_container {
+    display:inline-block;
+    width: 90%;
+}
+
+#memory_container {
+    display: inline-block;
+}
+
+.compute_step_reverse_undone {
+    background-image: url("arrow-left-empty.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_forward_doing {
+    background-image: url("arrow-right-yellow.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_reverse_doing {
+    background-image: url("arrow-left-yellow.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_forward_done {
+    background-image: url("arrow-right-green.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_reverse_done {
+    background-image: url("arrow-left-green.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_forward_saved {
+    background-image: url("arrow-right-black.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.memory_slot_free {
+    background-image: url("rectangle-empty.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 16px;
+    display:block;
+}
+
+.memory_slot_used {
+    background-image: url("rectangle-blue.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 16px;
+    display:block;
+}
