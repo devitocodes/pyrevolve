@@ -71,6 +71,13 @@ matrix:
         - PYTHONPATH=$PWD
         - CC=gcc-8
         - CXX=g++-8
+
+
+    - os: osx
+      python: "3.6"
+      env: PYTHONPATH=$PWD
+
+
   
 
 script:
