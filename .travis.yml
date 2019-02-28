@@ -74,6 +74,7 @@ matrix:
 
 
     - os: osx
+      osx_image: xcode9.3
       python: "3.6"
       env: PYTHONPATH=$PWD
 
