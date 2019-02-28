@@ -2,7 +2,7 @@ try:
     import pyrevolve.crevolve as cr
 except ImportError:
     import crevolve as cr
-
+import json
 
 class Action(object):
     ADVANCE = 0
@@ -17,11 +17,15 @@ class Action(object):
                   LASTFW: 'LASTFW', REVERSE: 'REVERSE', CPDEL: 'CPDEL',
                   TERMINATE: 'TERMINATE'}
 
-    def __init__(self, action_type):
+    def __init__(self, action_type, capo, oldcapo, ckp):
         self.type = action_type
+        self.capo = capo
+        self.oldcapo = oldcapo
+        self.ckp = ckp
 
     def __repr__(self):
-        return "Action (%s)" % self.type_names[self.type]
+        return json.dumps(dict({'type': self.type_names[self.type], 'capo': self.capo,
+                'oldcapo': self.oldcapo, 'ckp': self.ckp}))
 
 
 class CRevolve(object):
@@ -36,7 +40,7 @@ class CRevolve(object):
         self.revolve = cr.CRevolve(number_checkpoints, number_timesteps, None)
 
     def next(self):
-        return Action(self.translations[self.revolve.revolve()])
+        return Action(self.translations[self.revolve.revolve()], self.capo, self.old_capo, self.cp_pointer)
 
     @property
     def capo(self):
