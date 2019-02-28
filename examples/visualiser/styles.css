@@ -1,5 +1,5 @@
 .compute_step_forward_undone {
-    background-image: url("arrow-right-empty.svg");
+    background-image: url("images/arrow-right-empty.svg");
     background-size: 100%;
     width: 40px;
     height: 46px;
@@ -16,7 +16,7 @@
 }
 
 .compute_step_reverse_undone {
-    background-image: url("arrow-left-empty.svg");
+    background-image: url("images/arrow-left-empty.svg");
     background-size: 100%;
     width: 40px;
     height: 46px;
@@ -24,7 +24,7 @@
 }
 
 .compute_step_forward_doing {
-    background-image: url("arrow-right-yellow.svg");
+    background-image: url("images/arrow-right-yellow.svg");
     background-size: 100%;
     width: 40px;
     height: 46px;
@@ -32,7 +32,7 @@
 }
 
 .compute_step_reverse_doing {
-    background-image: url("arrow-left-yellow.svg");
+    background-image: url("images/arrow-left-yellow.svg");
     background-size: 100%;
     width: 40px;
     height: 46px;
@@ -40,7 +40,7 @@
 }
 
 .compute_step_forward_done {
-    background-image: url("arrow-right-green.svg");
+    background-image: url("images/arrow-right-green.svg");
     background-size: 100%;
     width: 40px;
     height: 46px;
@@ -48,7 +48,7 @@
 }
 
 .compute_step_reverse_done {
-    background-image: url("arrow-left-green.svg");
+    background-image: url("images/arrow-left-green.svg");
     background-size: 100%;
     width: 40px;
     height: 46px;
@@ -56,7 +56,7 @@
 }
 
 .compute_step_forward_saved {
-    background-image: url("arrow-right-black.svg");
+    background-image: url("images/arrow-right-black.svg");
     background-size: 100%;
     width: 40px;
     height: 46px;
@@ -64,7 +64,7 @@
 }
 
 .memory_slot_free {
-    background-image: url("rectangle-empty.svg");
+    background-image: url("images/rectangle-empty.svg");
     background-size: 100%;
     width: 40px;
     height: 16px;
@@ -72,7 +72,7 @@
 }
 
 .memory_slot_used {
-    background-image: url("rectangle-blue.svg");
+    background-image: url("images/rectangle-blue.svg");
     background-size: 100%;
     width: 40px;
     height: 16px;

@@ -1,5 +1,9 @@
-from pyrevolve.schedulers import * # noqa
+from flask_cors import CORS
+from flask import Flask, request, jsonify, send_from_directory
 import math
+
+from pyrevolve.schedulers import * # noqa
+
 
 
 def static_schedule(nt, ncp):
@@ -25,16 +29,26 @@ def static_schedule(nt, ncp):
 
     return schedule
 
-from flask_cors import CORS
-from flask import Flask
+
 app = Flask(__name__)
 CORS(app)
 
 @app.route("/")
-def hello():
-    return "Hello"
+def index():
+    return send_from_directory(".", "demo.html")
 
-from flask import request, jsonify
+@app.route("/demo.js")
+def script():
+    return send_from_directory(".", "demo.js")
+
+@app.route("/styles.css")
+def style():
+    return send_from_directory(".", "styles.css")
+
+@app.route('/images/<path:filename>')
+def image(filename):
+    return send_from_directory("images", filename)
+
 @app.route("/static_schedule")
 def get_schedule():
     ncp = int(request.args.get('ncp'))

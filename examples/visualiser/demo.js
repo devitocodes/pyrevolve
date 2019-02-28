@@ -1,7 +1,7 @@
 num_compute_steps = 0
 num_memory_slots = 0
 
-scheduler_url = "http://localhost:5000"
+scheduler_url ="" //"http://localhost:5000"
 
 schedule = null;
 memory_tracker = undefined;
