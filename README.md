@@ -11,6 +11,7 @@ of time steps is Revolve[^1], and there are other algorithms for optimal online
 checkpointing if the number of steps is unknown a priori, or for multistage
 checkpointing if there are multiple layers of storage, e.g. memory and hard
 drive.
+![Visual demo of checkpointing](https://raw.githubusercontent.com/opesci/pyrevolve/master/examples/checkpointing_demo.gif)
 
 [^1]: Algorithm 799: Revolve: An Implementation of Checkpointing for the Reverse
 or Adjoint Mode of Computational Differentiation
@@ -31,6 +32,9 @@ This C wrapper is taken from libadjoint[^3].
 [^3]: libadjoint: https://bitbucket.org/dolfin-adjoint/libadjoint
 
 # Installation
+
+The simplest installation is through pip by simply doing `pip install pyrevolve`.
+If that fails, try the method listed below. 
 
 The crevolve wrapper requires cython, and the compilation of the C++ files
 require that a C++ compiler is installed. To install pyrevolve, clone the repo
