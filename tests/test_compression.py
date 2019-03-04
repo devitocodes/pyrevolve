@@ -53,13 +53,15 @@ def test_compression_is_used():
     cp = YoCheckpoint(a)
     counters = [0, 0]
 
+    compressor, decompressor = compressors[None], decompressors[None]
+
     def this_compressor(params, data):
         counters[0] += 1
-        return data
+        return compressor(params, data)
 
     def this_decompressor(params, data):
         counters[1] += 1
-        return data
+        return decompressor(params, data)
 
     compression_params = {'scheme': 'custom', 'compressor': this_compressor,
                           'decompressor': this_decompressor}

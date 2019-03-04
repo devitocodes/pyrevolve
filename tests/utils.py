@@ -65,22 +65,10 @@ class YoCheckpoint(Checkpoint):
         self.field = field
 
     def get_data(self, timestep):
-        return self.field
+        return [self.field]
 
     def get_data_location(self, timestep):
-        return self.field
-
-    def save(self, ptr, compressor):
-        ptr, start, end = ptr
-        pickled = pickle.dumps(compressor(self.field[:]))
-        required_length = end - start
-        actual_length = len(pickled)
-        assert(actual_length <= required_length)
-        ptr[start:(start+actual_length)] = pickled
-
-    def load(self, ptr, decompressor):
-        ptr, start, end = ptr
-        self.field[:] = decompressor(pickle.loads(ptr[start:end]))
+        return [self.field]
 
     @property
     def dtype(self):
@@ -91,6 +79,3 @@ class YoCheckpoint(Checkpoint):
         print("bytes", self.field.nbytes)
         return reduce(mul, self.field.shape)
 
-    @property
-    def nbytes(self):
-        return len(pickle.dumps(self.field))

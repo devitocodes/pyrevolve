@@ -29,12 +29,12 @@ def init_compression(params):
 
 
 def no_compression_in(params, indata):
-    return CompressedObject(memoryview(indata), shape=indata.shape,
+    return CompressedObject(memoryview(indata.tobytes()), shape=indata.shape,
                             dtype=indata.dtype)
 
 
 def no_compression_out(params, indata):
-    return np.array(indata.data, shape=indata.shape, dtype=indata.dtype)
+    return np.frombuffer(indata.data, dtype=indata.dtype).reshape(indata.shape)
 
 
 def blosc_compress(params, indata):
@@ -52,14 +52,14 @@ def blosc_compress(params, indata):
         time += t.elapsed
         size += len(c)
         chunk_sizes.append(len(c))
-
-    return str({'data': compressed, 'chunks': chunk_sizes,
-                'shape': indata.shape, 'dtype': indata.dtype}).encode('utf-8')
+    metadata = {'shape': indata.shape, 'dtype': indata.dtype,
+                'chunks': chunk_sizes}
+    return CompressedObject(data=compressed, metadata=metadata)
 
 
 def blosc_decompress(params, indata):
-    compressed = indata['data']
-    chunk_sizes = indata['chunks']
+    compressed = indata.data
+    chunk_sizes = indata.metadata['chunks']
 
     ptr = 0
     decompressed = bytes()
@@ -68,8 +68,8 @@ def blosc_decompress(params, indata):
         d = blosc.decompress(c)
         decompressed += d
         ptr += s
-    return np.fromstring(decompressed,
-                         dtype=indata['dtype']).reshape(indata['shape'])
+    return np.frombuffer(decompressed,
+                         dtype=indata.dtype).reshape(indata.shape)
 
 
 class CompressedObject(object):

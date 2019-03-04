@@ -73,7 +73,7 @@ class Revolver(object):
         if(n_checkpoints is None):
             n_checkpoints = cr.adjust(n_timesteps)
         if compression_params is None:
-            compression_params = {}
+            compression_params = {'scheme': None}
         self.timings = timings
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator

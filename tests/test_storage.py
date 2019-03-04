@@ -1,21 +1,25 @@
 from pyrevolve.compression import init_compression
 from pyrevolve.storage import BytesStorage
 import numpy as np
+import pytest
 
 
-def test_save_and_restore_no_compression():
+@pytest.mark.parametrize("scheme", ['blosc', 'zfp'])
+def test_save_and_restore_with_compression(scheme):
     dtype = np.float32
-    compression_scheme = 'zfp'
-    compression = init_compression({'scheme': compression_scheme})
-    store = BytesStorage(100, 5, dtype, compression, False)
+    ncp = 5
+
+    compression = init_compression({'scheme': scheme})
+    store = BytesStorage(100, ncp, dtype, compression, False)
     a = np.zeros((5, 5), dtype=dtype)
     b = np.ones((3, 3, ), dtype=dtype)
-    store.save(0, [a, b])
 
     a1 = np.empty_like(a)
     b1 = np.empty_like(b)
+    for i in range(ncp):
+        store.save(0, [a+i, b+i])
 
-    store.load(0, [a1, b1])
+        store.load(0, [a1, b1])
 
-    assert(np.allclose(a, a1))
-    assert(np.allclose(b, b1))
+        assert(np.allclose(a+i, a1))
+        assert(np.allclose(b+i, b1))

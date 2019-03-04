@@ -81,7 +81,7 @@ class BytesStorage(object):
         return (self.storage, start, end)
 
     def save(self, key, data):
-        logger.debug("ByteStorage: Saving to location %d" % key)
+        logger.debug("ByteStorage: Saving to location %d/%d" % (key, self.n_ckp))
         dataset = [self.compressor(x) for x in data]
         logger.debug("ByteStorage: Compression complete")
         offset = 0
@@ -90,7 +90,6 @@ class BytesStorage(object):
         ptr, start, end = self.get_location(key)
         for compressed_object in dataset:
             if not (isinstance(compressed_object, CompressedObject)):
-                print(type(compressed_object))
                 if not self.auto_pickle:
                     raise TypeError("Expecting data to be bytes/bytearray, " +
                                     "found %s" % type(compressed_object))
@@ -98,15 +97,16 @@ class BytesStorage(object):
                     assert(isinstance(data, tuple) and len(data) == 2)
                     data, metadata = data
                     data = pickle.dumps(metadata)
+            start += offset
             compressed_data = compressed_object.data
             metadata = compressed_object.metadata
-            start += offset
             logger.debug("Start: %d, End: %d" % (start, end))
             allowed_size = end - start
             actual_size = len(compressed_data)
             logger.debug("Actual size: %d" % actual_size)
 
             assert(actual_size <= allowed_size)
+            logger.debug(type(compressed_data))
             self.storage[start:(start+actual_size)] = compressed_data
             sizes.append(actual_size)
             offset += actual_size
@@ -131,7 +131,8 @@ class BytesStorage(object):
             compressed_data = self.storage[start:(start+actual_size)]
             compressed_object = CompressedObject(compressed_data,
                                                  metadata=metadata)
-            logger.debug(np.linalg.norm(compressed_data))
-            location[:] = self.decompressor(compressed_object)
+
+            decompressed = self.decompressor(compressed_object)
+            location[:] = decompressed
             offset += actual_size
         logger.debug("ByteStorage: Load complete")
