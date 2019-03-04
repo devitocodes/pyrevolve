@@ -61,31 +61,11 @@ class MyCheckpoint(pr.Checkpoint):
             raise Exception("Symbols must be a Mapping, for example a \
                               dictionary.")
 
-    def save(self, ptr, compressor):
-        """Overwrite live-data in this Checkpoint object with data found at
-        the ptr location."""
-        i_ptr_lo = 0
-        i_ptr_hi = 0
-        for i in self.symbols:
-            i_ptr_hi = i_ptr_hi + self.symbols[i].size
-            ptr[i_ptr_lo:i_ptr_hi] = compressor(self.symbols[i].data[:])
-            i_ptr_lo = i_ptr_hi
-
-    def load(self, ptr, decompressor):
-        """Copy live-data from this Checkpoint object into the memory given by
-        the ptr."""
-        i_ptr_lo = 0
-        i_ptr_hi = 0
-        for i in self.symbols:
-            i_ptr_hi = i_ptr_hi + self.symbols[i].size
-            self.symbols[i].data[:] = decompressor(ptr[i_ptr_lo:i_ptr_hi])
-            i_ptr_lo = i_ptr_hi
-
     def get_data_location(self, timestep):
-        return next(iter(self.symbols.values())).data
+        return [x.data for x in list(self.symbols.values())]
 
     def get_data(self, timestep):
-        return next(iter(self.symbols.values())).data
+        return [x.data for x in self.symbols.values()]
 
     @property
     def size(self):
@@ -98,10 +78,6 @@ class MyCheckpoint(pr.Checkpoint):
     @property
     def dtype(self):
         return np.float32
-
-    @property
-    def nbytes(self):
-        return self.size * np.dtype(self.dtype).itemsize
 
 
 nSteps = 30
