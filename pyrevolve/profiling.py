@@ -7,18 +7,18 @@ class Timer(object):
         self.profiler = profiler
         self.section = section
         self.action = action
-        
+
     def __enter__(self):
         self.start = self.timer()
         return self
-        
+
     def __exit__(self, *args):
         end = self.timer()
         self.elapsed_secs = end - self.start
         self.elapsed = self.elapsed_secs * 1000  # millisecs
         self.profiler.increment(self.section, self.action, self.elapsed)
 
-        
+
 class Profiler(object):
     def __init__(self):
         self.timings = {}
@@ -42,7 +42,9 @@ class Profiler(object):
         for section, section_timings in self.timings.items():
             summary += '\nIn section %s:' % section
             for action, action_time in section_timings.items():
-                summary += '\n\tAction %s: %f (%d)' % (action, action_time, self.counts[section][action])
+                summary += '\n\tAction %s: %f (%d)' \
+                           % (action, action_time,
+                              self.counts[section][action])
         summary += '\n****************'
         return summary
 

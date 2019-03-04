@@ -7,7 +7,7 @@ from . import crevolve as cr
 from .compression import init_compression as init
 from .schedulers import Revolve, Action
 from .profiling import Profiler
-from .storage import NumpyStorage
+from .storage import NumpyStorage, BytesStorage
 
 
 class Operator(object):
@@ -81,13 +81,14 @@ class Revolver(object):
         compressor, decompressor = init(compression_params)
         self.profiler = Profiler()
 
-        if compression_params['scheme'] == None:
+        if compression_params['scheme'] is None:
             self.storage = NumpyStorage(checkpoint.size, n_checkpoints,
-                                        checkpoint.dtype, profiler=self.profiler)
+                                        checkpoint.dtype,
+                                        profiler=self.profiler)
         else:
             self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
-                                    checkpoint.dtype, auto_pickle=True,
-                                    compression=(compressor, decompressor))
+                                        checkpoint.dtype, auto_pickle=True,
+                                        compression=(compressor, decompressor))
         self.n_timesteps = n_timesteps
 
         self.scheduler = Revolve(n_checkpoints, n_timesteps)

@@ -1,6 +1,5 @@
 import blosc
 import pyzfp
-import pysz
 import numpy as np
 from contexttimer import Timer
 from functools import partial
@@ -30,7 +29,9 @@ def init_compression(params):
 
 
 def no_compression_in(params, indata):
-    return CompressedObject(memoryview(indata), shape=indata.shape, dtype=indata.dtype)
+    return CompressedObject(memoryview(indata), shape=indata.shape,
+                            dtype=indata.dtype)
+
 
 def no_compression_out(params, indata):
     return np.array(indata.data, shape=indata.shape, dtype=indata.dtype)
@@ -52,9 +53,8 @@ def blosc_compress(params, indata):
         size += len(c)
         chunk_sizes.append(len(c))
 
-    # ratio = round(len(s)/float(size), 3)
-    return str({'data': compressed, 'chunks': chunk_sizes, 'shape': indata.shape,
-            'dtype': indata.dtype}).encode('utf-8')
+    return str({'data': compressed, 'chunks': chunk_sizes,
+                'shape': indata.shape, 'dtype': indata.dtype}).encode('utf-8')
 
 
 def blosc_decompress(params, indata):
@@ -70,6 +70,7 @@ def blosc_decompress(params, indata):
         ptr += s
     return np.fromstring(decompressed,
                          dtype=indata['dtype']).reshape(indata['shape'])
+
 
 class CompressedObject(object):
     def __init__(self, data, shape=None, dtype=None, metadata=None):
@@ -88,24 +89,18 @@ class CompressedObject(object):
 
 
 def zfp_compress(params, indata):
-    return CompressedObject(memoryview(pyzfp.compress(indata, **params)), shape=indata.shape, dtype=indata.dtype)
+    return CompressedObject(memoryview(pyzfp.compress(indata, **params)),
+                            shape=indata.shape, dtype=indata.dtype)
 
 
 def zfp_decompress(params, indata):
     assert(isinstance(indata, CompressedObject))
     return pyzfp.decompress(indata.data, indata.shape, indata.dtype,
-                          **params)
-
-def sz_compress(params, indata):
-    return str({'data': pysz.compress(indata, **params), 'shape': indata.shape,
-            'dtype': indata.dtype}).encode('utf-8')
+                            **params)
 
 
-def sz_decompress(params, indata):
-    return pysz.decompress(indata['data'], indata['shape'], indata['dtype'])
-
-
-compressors = {None: no_compression_in, 'blosc': blosc_compress, 'zfp': zfp_compress, 'sz': sz_compress}
+compressors = {None: no_compression_in, 'blosc': blosc_compress,
+               'zfp': zfp_compress}
 decompressors = {None: no_compression_out, 'blosc': blosc_decompress,
-                 'zfp': zfp_decompress, 'sz': sz_decompress}
-allowed_names = [None, 'blosc', 'zfp', 'sz']
+                 'zfp': zfp_decompress}
+allowed_names = [None, 'blosc', 'zfp']

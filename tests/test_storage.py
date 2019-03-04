@@ -1,7 +1,7 @@
-from pyrevolve.compression import init_compression, compressors, decompressors
+from pyrevolve.compression import init_compression
 from pyrevolve.storage import BytesStorage
-import pytest
 import numpy as np
+
 
 def test_save_and_restore_no_compression():
     dtype = np.float32
@@ -14,7 +14,7 @@ def test_save_and_restore_no_compression():
 
     a1 = np.empty_like(a)
     b1 = np.empty_like(b)
-    
+
     store.load(0, [a1, b1])
 
     assert(np.allclose(a, a1))
