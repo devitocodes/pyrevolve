@@ -2,7 +2,6 @@ from pyrevolve import Operator, Checkpoint
 import numpy as np
 from operator import mul
 from functools import reduce
-import pickle
 
 
 def np_ref_address(ptr):
@@ -78,4 +77,3 @@ class YoCheckpoint(Checkpoint):
     def size(self):
         print("bytes", self.field.nbytes)
         return reduce(mul, self.field.shape)
-

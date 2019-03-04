@@ -81,7 +81,8 @@ class BytesStorage(object):
         return (self.storage, start, end)
 
     def save(self, key, data):
-        logger.debug("ByteStorage: Saving to location %d/%d" % (key, self.n_ckp))
+        logger.debug("ByteStorage: Saving to location %d/%d" % (key,
+                                                                self.n_ckp))
         dataset = [self.compressor(x) for x in data]
         logger.debug("ByteStorage: Compression complete")
         offset = 0
