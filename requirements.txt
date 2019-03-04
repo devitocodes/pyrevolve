@@ -4,3 +4,4 @@ versioneer
 pytest
 blosc
 contexttimer
+pyzfp

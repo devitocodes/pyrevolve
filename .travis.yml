@@ -82,7 +82,6 @@ matrix:
   
 
 script:
-  - git clone https://github.com/navjotk/pyzfp.git && cd pyzfp && make && cd ..
   - flake8 --exclude versioneer.py .
   - python setup.py build_ext --inplace
   - python examples/use_classic.py
