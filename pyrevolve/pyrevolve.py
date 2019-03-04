@@ -2,17 +2,12 @@ from abc import ABCMeta, abstractproperty, abstractmethod
 
 import numpy as np
 
-try:
-    import pyrevolve.crevolve as cr
-except ImportError:
-    from . import crevolve as cr
+
+from . import crevolve as cr
 from .compression import init_compression as init
 from .schedulers import Revolve, Action
-from .logger import logger
 from .profiling import Profiler
-from .storage import NumpyStorage, BytesStorage
-from . import custom_pickle as pickle
-import hashlib
+from .storage import NumpyStorage
 
 
 class Operator(object):
@@ -66,7 +61,8 @@ class Revolver(object):
     """
 
     def __init__(self, checkpoint, fwd_operator, rev_operator,
-                 n_checkpoints=None, n_timesteps=None, timings=None, compression_params=None):
+                 n_checkpoints=None, n_timesteps=None, timings=None,
+                 compression_params=None):
         """Initialise checkpointer for a given forward- and reverse operator, a
         given number of time steps, and a given storage strategy. The number of
         time steps must currently be provided explicitly, and the storage must
@@ -84,7 +80,8 @@ class Revolver(object):
         self.checkpoint = checkpoint
         compressor, decompressor = init(compression_params)
         self.profiler = Profiler()
-        self.storage = NumpyStorage(checkpoint.size, n_checkpoints, checkpoint.dtype, profiler=self.profiler)
+        self.storage = NumpyStorage(checkpoint.size, n_checkpoints,
+                                    checkpoint.dtype, profiler=self.profiler)
         #self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
         #                            checkpoint.dtype, auto_pickle=True,
         #                            compression=(compressor, decompressor))

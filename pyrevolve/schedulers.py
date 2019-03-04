@@ -13,7 +13,9 @@ class Action(object):
     CPDEL = 5
     TERMINATE = 6
 
-    type_names = {ADVANCE: 'ADVANCE', TAKESHOT: 'TAKESHOT', RESTORE: 'RESTORE', LASTFW: 'LASTFW', REVERSE: 'REVERSE', CPDEL: 'CPDEL', TERMINATE: 'TERMINATE'}
+    type_names = {ADVANCE: 'ADVANCE', TAKESHOT: 'TAKESHOT', RESTORE: 'RESTORE',
+                  LASTFW: 'LASTFW', REVERSE: 'REVERSE', CPDEL: 'CPDEL',
+                  TERMINATE: 'TERMINATE'}
 
     def __init__(self, action_type):
         self.type = action_type
@@ -32,7 +34,6 @@ class CRevolve(object):
 
     def __init__(self, number_checkpoints, number_timesteps):
         self.revolve = cr.CRevolve(number_checkpoints, number_timesteps, None)
-        #self.revolve.info = 0
 
     def next(self):
         return Action(self.translations[self.revolve.revolve()])
