@@ -1,9 +1,13 @@
-try:
-    import pyrevolve.crevolve as cr
-except ImportError:
-    import crevolve as cr
-import numpy as np
 from abc import ABCMeta, abstractproperty, abstractmethod
+
+import numpy as np
+
+
+from . import crevolve as cr
+from .compression import init_compression as init
+from .schedulers import Revolve, Action
+from .profiling import Profiler
+from .storage import NumpyStorage, BytesStorage
 
 
 class Operator(object):
@@ -32,31 +36,13 @@ class Checkpoint(object):
         return NotImplemented
 
     @abstractmethod
-    def save(self, ptr):
+    def get_data(self, timestep):
         """Deep-copy live data into the numpy array `ptr`."""
         return NotImplemented
 
-    @abstractmethod
-    def load(self, ptr):
-        """Deep-copy from the numpy array `ptr` into the live data."""
-        return NotImplemented
-
-
-class CheckpointStorage(object):
-    """Holds a chunk of memory large enough to store all checkpoints. The
-    []-operator is overloaded to return a pointer to the memory reserved for a
-    given checkpoint number. Revolve will typically use this as LIFO, but the
-    storage also supports random access."""
-
-    """Allocates memory on initialisation. Requires number of checkpoints and
-    size of one checkpoint. Memory is allocated in C-contiguous style."""
-    def __init__(self, size_ckp, n_ckp, dtype):
-        self.storage = np.zeros((n_ckp, size_ckp), order='C', dtype=dtype)
-
-    """Returns a pointer to the contiguous chunk of memory reserved for the
-    checkpoint with number `key`."""
-    def __getitem__(self, key):
-        return self.storage[key, :]
+    @property
+    def nbytes(self):
+        return self.size * np.dtype(self.dtype).itemsize
 
 
 class Revolver(object):
@@ -64,7 +50,7 @@ class Revolver(object):
     This should be the only user-facing class in here. It manages the
     interaction between the operators passed by the user, and the data storage.
 
-    Todo:
+    TODO:
         * Reverse operator is always called for a single step. Change this.
         * Avoid redundant data stores if higher-order stencils save multiple
           time steps, and checkpoints are close together.
@@ -74,9 +60,9 @@ class Revolver(object):
           stores live data rather than one of the checkpoints.
     """
 
-    def __init__(self, checkpoint,
-                 fwd_operator, rev_operator,
-                 n_checkpoints=None, n_timesteps=None):
+    def __init__(self, checkpoint, fwd_operator, rev_operator,
+                 n_checkpoints=None, n_timesteps=None, timings=None,
+                 compression_params=None):
         """Initialise checkpointer for a given forward- and reverse operator, a
         given number of time steps, and a given storage strategy. The number of
         time steps must currently be provided explicitly, and the storage must
@@ -86,15 +72,26 @@ class Revolver(object):
                               number of time steps!")
         if(n_checkpoints is None):
             n_checkpoints = cr.adjust(n_timesteps)
+        if compression_params is None:
+            compression_params = {'scheme': None}
+        self.timings = timings
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.checkpoint = checkpoint
-        self.storage = CheckpointStorage(checkpoint.size, n_checkpoints,
-                                         checkpoint.dtype)
+        compressor, decompressor = init(compression_params)
+        self.profiler = Profiler()
+
+        if compression_params['scheme'] is None:
+            self.storage = NumpyStorage(checkpoint.size, n_checkpoints,
+                                        checkpoint.dtype,
+                                        profiler=self.profiler)
+        else:
+            self.storage = BytesStorage(checkpoint.nbytes, n_checkpoints,
+                                        checkpoint.dtype, auto_pickle=True,
+                                        compression=(compressor, decompressor))
         self.n_timesteps = n_timesteps
-        storage_disk = None  # this is not yet supported
-        # We use the crevolve wrapper around the C++ Revolve library.
-        self.ckp = cr.CRevolve(n_checkpoints, n_timesteps, storage_disk)
+
+        self.scheduler = Revolve(n_checkpoints, n_timesteps)
 
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,
@@ -102,24 +99,24 @@ class Revolver(object):
 
         while(True):
             # ask Revolve what to do next.
-            action = self.ckp.revolve()
-            if(action == cr.Action.advance):
+            action = self.scheduler.next()
+            if(action.type == Action.ADVANCE):
                 # advance forward computation
-                self.fwd_operator.apply(t_start=self.ckp.oldcapo,
-                                        t_end=self.ckp.capo)
-            elif(action == cr.Action.takeshot):
+                with self.profiler.get_timer('forward', 'advance'):
+                    self.fwd_operator.apply(t_start=self.scheduler.old_capo,
+                                            t_end=self.scheduler.capo)
+            elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.ckp.check])
-            elif(action == cr.Action.restore):
-                # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.ckp.check])
-            elif(action == cr.Action.firstrun):
+                with self.profiler.get_timer('forward', 'takeshot'):
+                    self.save_checkpoint()
+            elif(action.type == Action.LASTFW):
                 # final step in the forward computation
-                self.fwd_operator.apply(t_start=self.ckp.oldcapo,
-                                        t_end=self.n_timesteps)
+                with self.profiler.get_timer('forward', 'lastfw'):
+                    self.fwd_operator.apply(t_start=self.scheduler.old_capo,
+                                            t_end=self.n_timesteps)
                 break
             else:
-                raise ValueError("Unknown action %d" % action)
+                raise ValueError("Unknown action %s" % str(action))
 
     def apply_reverse(self):
         """Executes only the backward computation while loading checkpoints,
@@ -127,29 +124,42 @@ class Revolver(object):
         recompute sections of the trajectory that have not been stored in the
         forward run."""
 
-        self.rev_operator.apply(t_start=self.ckp.capo,
-                                t_end=self.ckp.capo+1)
+        with self.profiler.get_timer('reverse', 'reverse'):
+            self.rev_operator.apply(t_start=self.scheduler.capo,
+                                    t_end=self.scheduler.capo+1)
 
         while(True):
             # ask Revolve what to do next.
-            action = self.ckp.revolve()
-            if(action == cr.Action.advance):
+            action = self.scheduler.next()
+            if(action.type == Action.ADVANCE):
                 # advance forward computation
-                self.fwd_operator.apply(t_start=self.ckp.oldcapo,
-                                        t_end=self.ckp.capo)
-            elif(action == cr.Action.takeshot):
+                with self.profiler.get_timer('reverse', 'advance'):
+                    self.fwd_operator.apply(t_start=self.scheduler.old_capo,
+                                            t_end=self.scheduler.capo)
+            elif(action.type == Action.TAKESHOT):
                 # take a snapshot: copy from workspace into storage
-                self.checkpoint.save(self.storage[self.ckp.check])
-            elif(action == cr.Action.restore):
+                with self.profiler.get_timer('reverse', 'takeshot'):
+                    self.save_checkpoint()
+            elif(action.type == Action.RESTORE):
                 # restore a snapshot: copy from storage into workspace
-                self.checkpoint.load(self.storage[self.ckp.check])
-            elif(action == cr.Action.youturn):
+                with self.profiler.get_timer('reverse', 'restore'):
+                    self.load_checkpoint()
+            elif(action.type == Action.REVERSE):
                 # advance adjoint computation by a single step
-                self.fwd_operator.apply(t_start=self.ckp.capo,
-                                        t_end=self.ckp.capo+1)
-                self.rev_operator.apply(t_start=self.ckp.capo,
-                                        t_end=self.ckp.capo+1)
-            elif(action == cr.Action.terminate):
+                with self.profiler.get_timer('reverse', 'reverse'):
+                    self.fwd_operator.apply(t_start=self.scheduler.capo,
+                                            t_end=self.scheduler.capo+1)
+                    self.rev_operator.apply(t_start=self.scheduler.capo,
+                                            t_end=self.scheduler.capo+1)
+            elif(action.type == Action.TERMINATE):
                 break
             else:
-                raise ValueError("Unknown action %d" % action)
+                raise ValueError("Unknown action %s" % str(action))
+
+    def save_checkpoint(self):
+        data_pointers = self.checkpoint.get_data(self.scheduler.capo)
+        self.storage.save(self.scheduler.cp_pointer, data_pointers)
+
+    def load_checkpoint(self):
+        locations = self.checkpoint.get_data_location(self.scheduler.capo)
+        self.storage.load(self.scheduler.cp_pointer, locations)

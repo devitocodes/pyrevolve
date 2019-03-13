@@ -61,25 +61,11 @@ class MyCheckpoint(pr.Checkpoint):
             raise Exception("Symbols must be a Mapping, for example a \
                               dictionary.")
 
-    def save(self, ptr):
-        """Overwrite live-data in this Checkpoint object with data found at
-        the ptr location."""
-        i_ptr_lo = 0
-        i_ptr_hi = 0
-        for i in self.symbols:
-            i_ptr_hi = i_ptr_hi + self.symbols[i].size
-            ptr[i_ptr_lo:i_ptr_hi] = self.symbols[i].data[:]
-            i_ptr_lo = i_ptr_hi
+    def get_data_location(self, timestep):
+        return [x.data for x in list(self.symbols.values())]
 
-    def load(self, ptr):
-        """Copy live-data from this Checkpoint object into the memory given by
-        the ptr."""
-        i_ptr_lo = 0
-        i_ptr_hi = 0
-        for i in self.symbols:
-            i_ptr_hi = i_ptr_hi + self.symbols[i].size
-            self.symbols[i].data[:] = ptr[i_ptr_lo:i_ptr_hi]
-            i_ptr_lo = i_ptr_hi
+    def get_data(self, timestep):
+        return [x.data for x in self.symbols.values()]
 
     @property
     def size(self):
