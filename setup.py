@@ -31,6 +31,9 @@ def extensions():
     return cythonize([ext])
 
 
+with open("README.md", "r") as fh:
+    long_description = fh.read()
+
 configuration = {
     'name': 'pyrevolve',
     'packages': ["pyrevolve"],
@@ -39,10 +42,8 @@ configuration = {
     'version': versioneer.get_version(),
     'cmdclass': versioneer.get_cmdclass(),
     'description': "Python wrapper for Revolve checkpointing",
-    'long_description': """pyrevolve is a python(ic) wrapper for
-    the Revolve utility from the Griewank(2000) for optimal
-    checkpointing. This is designed to work with existing
-    code with minimal changes.""",
+    'long_description': long_description,
+    'long_description_content_type': 'text/markdown',
     'url': 'https://github.com/opesci/pyrevolve/',
     'author': "Imperial College London",
     'author_email': 'opesci@imperial.ac.uk',
