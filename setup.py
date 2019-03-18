@@ -34,10 +34,13 @@ def extensions():
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+with open('requirements.txt') as f:
+    required = f.read().splitlines()
+
 configuration = {
     'name': 'pyrevolve',
     'packages': ["pyrevolve"],
-    'setup_requires': ['cython>=0.17'],
+    'setup_requires': required,
     'ext_modules': lazy_cythonize(extensions),
     'version': versioneer.get_version(),
     'cmdclass': versioneer.get_cmdclass(),
