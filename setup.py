@@ -34,8 +34,8 @@ def extensions():
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-with open('requirements.txt') as f:
-    required = f.read().splitlines()
+required = ["cython>=0.17", "flake8", "versioneer", "pytest", "blosc",
+            "contexttimer", "pyzfp"]
 
 configuration = {
     'name': 'pyrevolve',
