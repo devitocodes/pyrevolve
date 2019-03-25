@@ -25,6 +25,7 @@ class lazy_cythonize(list):
 def extensions():
     from Cython.Build import cythonize
     ext = Extension("pyrevolve.crevolve", sources=["pyrevolve/crevolve.pyx",
+                                                   "pyrevolve/revolve_c.pxd"
                                                    "src/revolve_c.cpp",
                                                    "src/revolve.cpp"],
                     include_dirs=[".", "pyrevolve"], language="c++")
@@ -51,6 +52,7 @@ configuration = {
     'author': "Imperial College London",
     'author_email': 'opesci@imperial.ac.uk',
     'license': 'MIT',
+    'zip_safe': False
 }
 
 
