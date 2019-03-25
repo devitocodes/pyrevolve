@@ -1,3 +1,5 @@
+# cython: language_level=3
+
 cimport revolve_c
 
 from enum import Enum
