@@ -34,13 +34,14 @@ def extensions():
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-required = ["cython>=0.17", "flake8", "versioneer", "pytest", "blosc",
-            "contexttimer", "pyzfp"]
+s_required = ["cython>=0.17", "versioneer"]
+i_required = ["blosc", "contexttimer", "pyzfp~=0.1.7rc1"]
 
 configuration = {
     'name': 'pyrevolve',
     'packages': ["pyrevolve"],
-    'setup_requires': required,
+    'setup_requires': s_required,
+    'install_requires': i_required,
     'ext_modules': lazy_cythonize(extensions),
     'version': versioneer.get_version(),
     'cmdclass': versioneer.get_cmdclass(),
