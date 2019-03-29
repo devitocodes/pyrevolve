@@ -1,3 +1,4 @@
+# cython: language_level=3
 cdef extern from "../include/revolve_c.h":
     ctypedef enum CACTION:
         CACTION_ADVANCE,

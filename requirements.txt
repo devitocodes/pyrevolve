@@ -1,8 +1,2 @@
-cython>=0.17
+.
 flake8
-versioneer
-pytest
-blosc
-contexttimer
-pyzfp
-

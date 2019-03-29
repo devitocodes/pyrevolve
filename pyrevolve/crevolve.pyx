@@ -1,9 +1,11 @@
+# cython: language_level=2
+
 cimport revolve_c
 
 from enum import Enum
 import warnings
 
-from tools import OutputGrabber
+from .tools import OutputGrabber
 
 
 class RevolveError(Exception):
