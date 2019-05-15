@@ -35,7 +35,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 s_required = ["cython>=0.17", "versioneer"]
-i_required = ["blosc", "contexttimer", "pyzfp~=0.2rc1"]
+i_required = ["blosc", "contexttimer", "pyzfp~=0.2rc2"]
 
 configuration = {
     'name': 'pyrevolve',
