@@ -1,0 +1,80 @@
+.compute_step_forward_undone {
+    background-image: url("images/arrow-right-empty.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+#compute_container {
+    display:inline-block;
+    width: 90%;
+}
+
+#memory_container {
+    display: inline-block;
+}
+
+.compute_step_reverse_undone {
+    background-image: url("images/arrow-left-empty.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_forward_doing {
+    background-image: url("images/arrow-right-yellow.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_reverse_doing {
+    background-image: url("images/arrow-left-yellow.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_forward_done {
+    background-image: url("images/arrow-right-green.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_reverse_done {
+    background-image: url("images/arrow-left-green.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.compute_step_forward_saved {
+    background-image: url("images/arrow-right-black.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 46px;
+    display:inline-block;
+}
+
+.memory_slot_free {
+    background-image: url("images/rectangle-empty.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 16px;
+    display:block;
+}
+
+.memory_slot_used {
+    background-image: url("images/rectangle-blue.svg");
+    background-size: 100%;
+    width: 40px;
+    height: 16px;
+    display:block;
+}
