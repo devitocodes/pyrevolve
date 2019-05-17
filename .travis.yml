@@ -83,7 +83,7 @@ matrix:
 
 script:
   - flake8 --exclude versioneer.py .
-  - python setup.py build_ext --inplace
+  - pip install -e .
   - python examples/use_classic.py
   - python examples/use_modernised.py
   - py.test -vs tests/
