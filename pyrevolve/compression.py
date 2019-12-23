@@ -1,22 +1,49 @@
-import blosc
-import pyzfp
 import numpy as np
 from contexttimer import Timer
 from functools import partial
 import pickle
 
 
+compressors_available = [None]
+
+try:
+    import blosc
+    compressors_available.append('blosc')
+except:
+    pass
+try:
+    import pyzfp
+    compressors_available.append('zfp')
+except:
+    pass
+
+
 DEFAULTS = {None: {}, 'blosc': {'chunk_size': 1000000},
             'zfp': {'tolerance': 0.0000001, 'parallel': True}}
 
+# Key-value pair of compressors pyrevolve is aware about but which may
+# or may not be installed. Key is the name of the compressor, value is
+# the name of the python package the user would be suggested to install. 
+compressors_known = {'blosc': 'blosc', 'zfp': 'pyzfp'}
 
 def init_compression(params):
     params = params.copy()
     scheme = params.pop('scheme', None)
+
     if scheme == 'custom':
         compressor = params.pop('compressor', None)
         decompressor = params.pop('decompressor', None)
     else:
+        if scheme not in compressors_available:
+            if scheme in compressors_known.keys():
+                print("Compressor not available. Please install by giving"+\
+                          " the following command")
+                print("pip install %s" % compressors_known[scheme])
+            else:
+                print("Unknown compressor: %s" % scheme)
+                print("Known compressors: %s" % str(list(compressors_known.keys())))
+            print("To disable compression, set scheme to None")
+            assert(False)
         compressor = compressors[scheme]
         decompressor = decompressors[scheme]
         default_values = DEFAULTS[scheme]
@@ -103,4 +130,4 @@ compressors = {None: no_compression_in, 'blosc': blosc_compress,
                'zfp': zfp_compress}
 decompressors = {None: no_compression_out, 'blosc': blosc_decompress,
                  'zfp': zfp_decompress}
-allowed_names = [None, 'blosc', 'zfp']
+
