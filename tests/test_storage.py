@@ -1,10 +1,10 @@
-from pyrevolve.compression import init_compression
+from pyrevolve.compression import init_compression, compressors_available
 from pyrevolve.storage import BytesStorage
 import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize("scheme", ['blosc', 'zfp'])
+@pytest.mark.parametrize("scheme", compressors_available)
 def test_save_and_restore_with_compression(scheme):
     dtype = np.float32
     ncp = 5

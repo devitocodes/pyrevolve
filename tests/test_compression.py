@@ -25,7 +25,7 @@ def test_all_reversible():
         assert(np.all(np.isclose(a, decompressed)))
 
 
-@pytest.mark.parametrize("scheme", [None, 'blosc', 'zfp'])
+@pytest.mark.parametrize("scheme", compressors_available)
 def test_complete(scheme):
     nt = 100
     ncp = 10
