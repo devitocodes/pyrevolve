@@ -31,6 +31,7 @@ matrix:
         - PYTHONPATH=$PWD
         - CC=gcc-5
         - CXX=g++-5
+      install: pip install -e .[compression]
 
     - os: linux
       python: "3.6"
@@ -78,12 +79,13 @@ matrix:
       python: "3.6-dev"
       env: PYTHONPATH=$PWD
 
+before_install: pip install -r requirements.txt
 
-  
+install:
+  - pip install -e .
 
 script:
-  - flake8 --exclude versioneer.py .
-  - pip install -e .
+  - flake8 .
   - python examples/use_classic.py
   - python examples/use_modernised.py
   - py.test -vs tests/

@@ -35,13 +35,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 s_required = ["cython>=0.17", "versioneer"]
-i_required = ["blosc", "contexttimer", "pyzfp"]
+i_required = ["contexttimer"]
 
 configuration = {
     'name': 'pyrevolve',
     'packages': ["pyrevolve"],
     'setup_requires': s_required,
     'install_requires': i_required,
+    'extras_require': {'compression': ['blosc', 'pyzfp']},
     'ext_modules': lazy_cythonize(extensions),
     'version': versioneer.get_version(),
     'cmdclass': versioneer.get_cmdclass(),
