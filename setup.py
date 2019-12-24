@@ -42,6 +42,7 @@ configuration = {
     'packages': ["pyrevolve"],
     'setup_requires': s_required,
     'install_requires': i_required,
+    'extras_require': {'compression': ['blosc', 'pyzfp']},
     'ext_modules': lazy_cythonize(extensions),
     'version': versioneer.get_version(),
     'cmdclass': versioneer.get_cmdclass(),
