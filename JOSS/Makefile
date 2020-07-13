@@ -1,6 +1,6 @@
-all: pyrevolve.pdf
+all: paper.html
 
 KNIT = Rscript -e "require(rmarkdown); render('$<')"
 
-pyrevolve.pdf: pyrevolve.md
+paper.html: paper.md
 	$(KNIT)

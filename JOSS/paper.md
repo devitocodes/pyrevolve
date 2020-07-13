@@ -48,7 +48,7 @@ This library presents a new approach to implement checkpointing in application c
 
 PyRevolve also supports the compression of checkpoints. We have already integrated blosc[@blosc] and zfp[@zfp]. Since zfp is a lossy compression algorithm, this extends the previous memory-compute tradeoff into a memory-compute-precision tradeoff. We have used this to enable our research into checkpoint-compression strategies [@kukreja2019combining].
 
-We are not aware of another comparable open-source library. 
+Automatic differentiation libraries like dolfin-adjoint [@mitusch2019dolfin] include an implementation of checkpointing using the Revolve algorithm. However, PyRevolve's primary purpose is to encapsulate and provide a simple interface to advanced checkpointing strategies in application code. PyRevolve is also unique in supporting the (lossy) compression of checkpoints out of the box. 
 
 Other examples of research enabled by PyRevolve include @kukreja2019training, @louboutin2020modeling, @witte2020event, @witte2019compressive, @witte2019large, @louboutin2019devito. 
 
