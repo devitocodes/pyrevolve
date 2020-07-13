@@ -36,7 +36,9 @@ PDE Inverse problems are usually solved using gradient-descent methods. This req
 
 A common approach to avoiding this large memory footprint is called checkpointing. In this approach, instead of storing the entire trajectory of intermediate states through the PDE solution, a subset is stored in memory while the others are discarded to save memory. During the adjoint computation, when a state is required that was discarded, the adjoint computation is paused, and the forward computation is restarted from the last available checkpoint to recompute the missing states.
 
-This library provides a simple interface to implement checkpointing in application code with minimal changes. 
+This library provides a simple interface to implement checkpointing in application code with minimal changes.
+
+The term checkpointing is often used for a strategy used to provide resilience/fault-tolerance to an application as well as the strategy described above. This library does not deal with checkpointing for resilience.
 
 # Statement of need
 Derivative calculation is an integral part of many types of computational problems like PDE constrained optimisation, inverse problems and training a neural network. The adjoint method (aka backpropagation) is a computationally efficient method of computing derivatives at a cost that is a small constant times the cost of computing the function itself. 
