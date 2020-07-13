@@ -7,7 +7,7 @@ tags:
   - revolve
   - memory
 authors:
-  - name:  Navjot Kukreja^[Corresponding Author nkukreja@imperial.ac.uk]
+  - name:  Navjot Kukreja
     orcid: 0000-0003-0016-3785
     affiliation: 1
   - name: Jan H&uuml;ckelheim
