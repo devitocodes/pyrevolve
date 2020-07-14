@@ -57,6 +57,6 @@ Other examples of research enabled by PyRevolve include @kukreja2019training, @l
 
 # Acknowledgements
 
-This project benefited greatly from discussions with Simon W. Funke. It also includes code from the original Revolve library written by Andrea Walther. (For Jan: I'm proposing this as an alternative to including them as authors. I am open to either option. )
+We are thankful to Simon W. Funke for the discussions that informed the design of this project. It also includes code from the original Revolve library written by Andrea Walther. This work was partly supported by EPSRC EP/R029423/1, Innovate UK project reference 104420 and the Open Devito consortium (BP, DUG, Microsoft, Shell). This work was supported by the U.S. Department of Energy, Office of Science, Office of Advanced Scientific Comput- ing Research, Applied Mathematics and Computer Science programs under contract number DE-AC02-06CH11357.
 
 # References
