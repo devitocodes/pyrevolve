@@ -32,11 +32,11 @@ bibliography: pyrevolve-joss.bib
 
 # Summary
 
-PDE Inverse problems are usually solved using gradient-descent methods. This requires the computation of derivatives - which are often computed using the adjoint method. The computation of derivatives introduces a considerable memory footprint for the solver program since the intermediate solution states, which can be discarded when solving the forward problem alone, become critical when solving the adjoint problem. For example, in seismic imaging, it is common to see this peak memory footprint go up to terabytes of RAM. 
+The adjoint-state method is central to solving PDE-constrained optimization problems, such as seismic imaging, using gradient-descent methods. However, the adjoint-state method introduces a considerable memory footprint for the solver as the solution state at each time step of the forward problem must be available when backpropagating the adjoint solution for the gradient calculation. For example, in seismic imaging, it is common to see this peak memory footprint go up to terabytes of RAM per ‘shot’ of data.
 
-A common approach to avoiding this large memory footprint is called checkpointing. In this approach, instead of storing the entire trajectory of intermediate states through the PDE solution, a subset is stored in memory while the others are discarded to save memory. During the adjoint computation, when a state is required that was discarded, the adjoint computation is paused, and the forward computation is restarted from the last available checkpoint to recompute the missing states.
+A common approach to avoiding this large memory footprint is called checkpointing. Using this technique, instead of storing the entire trajectory of intermediate states through the PDE solution, an optimal subset is stored in memory while the others are discarded to save memory. During the backpropagation, missing states are recomputed from the last available checkpoint. Revolve [@revolve] was the first algorithm to do this optimally, and the name is often used synonymously with checkpointing. 
 
-This library provides a simple interface to implement checkpointing in application code with minimal changes.
+This library provides a simple interface to implement checkpointing in application code with minimal changes. It also supports the compression of checkpoint data with blosc (lossless) and zfp (lossy) compression algorithms. 
 
 The term checkpointing is often used for a strategy used to provide resilience/fault-tolerance to an application as well as the strategy described above. This library does not deal with checkpointing for resilience.
 
@@ -57,6 +57,6 @@ Other examples of research enabled by PyRevolve include @kukreja2019training, @l
 
 # Acknowledgements
 
-We are thankful to Simon W. Funke for the discussions that informed the design of this project. It also includes code from the original Revolve library written by Andrea Walther. This work was partly supported by EPSRC EP/R029423/1, Innovate UK project reference 104420 and the Open Devito consortium (BP, DUG, Microsoft, Shell). This work was supported by the U.S. Department of Energy, Office of Science, Office of Advanced Scientific Comput- ing Research, Applied Mathematics and Computer Science programs under contract number DE-AC02-06CH11357.
+We are thankful to Simon W. Funke for the discussions that informed the design of this project. It also includes code from the original Revolve library written by Andrea Walther. This work was partly supported by EPSRC EP/R029423/1, Innovate UK project reference 104420 and the Open Devito consortium (BP, DUG, Microsoft, Shell). This work was supported by the U.S. Department of Energy, Office of Science, Office of Advanced Scientific Computing Research, Applied Mathematics and Computer Science programs under contract number DE-AC02-06CH11357.
 
 # References
