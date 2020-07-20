@@ -7,41 +7,46 @@ only at carefully selected points in time. From there, the forward computation
 can be restarted to recompute lost sections of the trajectory when they are
 needed during the adjoint computation. This is always a tradeoff between memory
 and runtime. The classic and provably optimal way to do this for a known number
-of time steps is Revolve[^1], and there are other algorithms for optimal online
+of time steps is [Revolve](https://doi.org/10.1145/347837.347846), and there are other algorithms for optimal online
 checkpointing if the number of steps is unknown a priori, or for multistage
 checkpointing if there are multiple layers of storage, e.g. memory and hard
 drive.
 ![Visual demo of checkpointing](https://raw.githubusercontent.com/opesci/pyrevolve/master/examples/checkpointing_demo.gif)
 
-[^1]: Algorithm 799: Revolve: An Implementation of Checkpointing for the Reverse
-or Adjoint Mode of Computational Differentiation
-
-# pyrevolve
+# PyRevolve
 
 The pyrevolve library contains two parts: crevolve, which is a thin Python
-wrapper around a previously published C++ implementation[^2], and pyrevolve
+wrapper around a previously published [C++ implementation](https://www.mathematik.hu-berlin.de/de/forschung/forschungsgebiete/mathematische-optimierung/andrea-walther/walther-software), and pyrevolve
 itself, which sits on top of crevolve and manages data and computation
 management for the user.
 
 The C++ files in this package are slightly modified to play more nicely with
 Python, but the original is available from the link below. In addition, there
 is a C wrapper around the C++ library, to simplify the interface with Python.
-This C wrapper is taken from libadjoint[^3].
+This C wrapper is taken from [libadjoint](https://bitbucket.org/dolfin-adjoint/libadjoint).
 
-[^2]: Revolve.cpp: http://www2.math.uni-paderborn.de/index.php?id=12067&L=1
-[^3]: libadjoint: https://bitbucket.org/dolfin-adjoint/libadjoint
+
 
 # Installation
+Since PyRevolve is distributed as source, you must have a functional C/C++
+compiler in your environment before trying to install PyRevolve. The
+installation procedure respects the standard environment variables
+like CC/CXX.
 
-The simplest installation is through pip by simply doing `pip install pyrevolve`.
-If that fails, try the method listed below. 
+The simplest installation is through pip by simply doing:
 
-The crevolve wrapper requires cython, and the compilation of the C++ files
-require that a C++ compiler is installed. To install pyrevolve, clone the repo
-and call
+    pip install pyrevolve
 
-    python setup.py build_ext --inplace
-    
+If you would like to have a local development copy that you can edit,
+clone the repo and call the following command in the home directory:
+
+    pip install -e .
+
+If you face any installation issues, first check that you really do
+have a functional C++ compiler, either available as `g++` in the path
+or pointed to by the environment variable `CXX`. If this is not the
+reason, please raise a issue here or on
+[this](https://opesci-slackin.now.sh) Slack channel. 
 # Usage
 
 There are two wrappers: a _classic_ wrapper that follows the behaviour of Revolve
