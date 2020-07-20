@@ -53,7 +53,7 @@ PyRevolve also supports the compression of checkpoints. We have already integrat
 
 Automatic differentiation libraries like dolfin-adjoint [@mitusch2019dolfin] include an implementation of checkpointing using the Revolve algorithm. However, PyRevolve's primary purpose is to encapsulate and provide a simple interface to advanced checkpointing strategies in application code. PyRevolve is also unique in supporting the (lossy) compression of checkpoints out of the box. 
 
-Other examples of research enabled by PyRevolve include @kukreja2019training, @louboutin2020modeling, @witte2020event, @witte2019compressive, @witte2019large, @louboutin2019devito. 
+Other examples of research enabled by PyRevolve include @kukreja2019training, @witte2020event, @witte2019compressive, @witte2019large, @louboutin2019devito. 
 
 # Acknowledgements
 
