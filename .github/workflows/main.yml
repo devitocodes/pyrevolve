@@ -17,6 +17,9 @@ jobs:
         os: [ubuntu-18.04, ubuntu-20.04]
         python-version: [3.8, 3.x]
         compiler_v: [7,8,9]
+        include:
+          - os: macos-latest
+            python-version: [3.6-dev, 3.x]
 
     steps:
     - uses: actions/checkout@v2
@@ -32,7 +35,6 @@ jobs:
                                 g++-${{ matrix.compiler_v }}
         python -m pip install --upgrade pip
         python -m pip install pytest numpy
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
         if [ "${{ matrix.compiler_v }}" == '7' ];then
           pip install -e .[compression]
         else
@@ -42,42 +44,9 @@ jobs:
         PYTHONPATH: $PWD
         CC: gcc-${{ matrix.compiler_v }}
         CXX: g++-${{ matrix.compiler_v }}
-    - name: Lint with flake8
-      run: flake8 .
     - name: Run examples
       run: |
         python examples/use_classic.py
         python examples/use_modernised.py
     - name: Test with pytest
       run: py.test -vs tests
-        
-  job2:
-    name: Build macOS
-    runs-on: macos-latest
-    strategy:
-      matrix:
-        python-version: [3.6-dev, 3.x]
-
-    steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
-      with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest numpy
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-        pip install -e .
-      env:
-        PYTHONPATH: $PWD
-    - name: Lint with flake8
-      run: flake8 .
-    - name: Run examples
-      run: |
-        python examples/use_classic.py
-        python examples/use_modernised.py
-    - name: Test with pytest
-      run: py.test -vs tests
-
