@@ -1,6 +1,4 @@
-# This is a basic workflow to help you get started with Actions
-
-name: CI
+name: pytest-linux
 
 on:
   push:
@@ -9,17 +7,13 @@ on:
     branches: [ master ]
 
 jobs:
-  job1:
-    name: Build linux
+  Build-linux:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-18.04, ubuntu-20.04]
         python-version: [3.8, 3.x]
         compiler_v: [7,8,9]
-        include:
-          - os: macos-latest
-            python-version: [3.6-dev, 3.x]
 
     steps:
     - uses: actions/checkout@v2
@@ -50,3 +44,4 @@ jobs:
         python examples/use_modernised.py
     - name: Test with pytest
       run: py.test -vs tests
+
