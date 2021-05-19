@@ -8,6 +8,7 @@ class OutputGrabber(object):
     """
     Class used to grab standard output or another stream.
     """
+
     escape_char = "\b"
 
     def __init__(self, stream=None, threaded=False):
