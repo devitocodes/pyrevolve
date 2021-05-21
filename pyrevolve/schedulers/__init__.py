@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-
 try:
     import pyrevolve.crevolve as cr
 except ImportError:
@@ -16,7 +15,7 @@ class Architecture:
     architecture, with read/write access costs
     and memory sizes for each level.
     @attributes:
-        nbleves:    number of memory levels
+        nblevels:    number of memory levels
         wd:         list of write costs
         rd:         list of read costs
         sizes:      number of checkpoins per storage
@@ -145,14 +144,15 @@ class HAction(Action):
         "Read": Action.RESTORE,
         "Write": Action.TAKESHOT,
         "Discard": Action.CPDEL,
-        "Terminate": Action.TERMINATE,
+        "Terminate": Action.TERMINATE
     }
 
     def __init__(
-        self, action_type=Action.TERMINATE, h_op=None, capo=0, old_capo=0, ckp=0
+        self, action_type=Action.TERMINATE, h_op=None, capo=0, old_capo=0, ckp=0, index=0
     ):
         if h_op is None:
             super().__init__(action_type, capo, old_capo, ckp)
+            self.index = index
         else:
             super().__init__(self.h_operations[h_op.type], capo, old_capo, ckp)
             if self.type == Action.ADVANCE:
@@ -325,11 +325,6 @@ class HRevolve(Scheduler):
         ha = HAction(h_op=op)
         self.__capo = ha.capo
         self.__old_capo = ha.old_capo
-
-        # H-revolve computes the forward steps Fi
-        # with i ∈ {0, . . . , l − 1}).
-        if ha.type is Action.ADVANCE and self.__capo >= (self.n_timesteps):
-            ha.type = Action.LASTFW
         return ha
 
     @property

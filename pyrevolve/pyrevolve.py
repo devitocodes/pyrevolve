@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractproperty, abstractmethod
 import numpy as np
 from . import crevolve as cr
 from .compression import init_compression as init
-from .schedulers import CRevolve, HRevolve, Action, Architecture
+from .schedulers import CRevolve, HAction, HRevolve, Action, Architecture
 from .profiling import Profiler
 from .storage import NumpyStorage, BytesStorage, DiskStorage
 
@@ -102,6 +102,9 @@ class BaseRevolver(object):
         self.scheduler = scheduler
         self.storage_list = storage_list
 
+        self.__last_capo_read = -1  # last ckp read
+        self.__last_stidx_read = -1  # last storage idx read
+
     def addStorage(self, new_storage):
         self.storage_list.append(new_storage)
 
@@ -117,7 +120,7 @@ class BaseRevolver(object):
             self.checkpoint.size,
             self.n_checkpoints,
             self.checkpoint.dtype,
-            self.profiler,
+            profiler=self.profiler,
             filedir=filedir,
             singlefile=singlefile,
             wd=wd,
@@ -145,7 +148,21 @@ class BaseRevolver(object):
                 self.checkpoint.dtype,
                 auto_pickle=True,
                 compression=(compressor, decompressor),
+                profiler=self.profiler,
             )
+        self.addStorage(npSt)
+        return len(self.storage_list) - 1  # st index
+
+    def addByteStorage(self, compression_params):
+        compressor, decompressor = init(compression_params)
+        npSt = BytesStorage(
+            self.checkpoint.nbytes,
+            self.n_checkpoints,
+            self.checkpoint.dtype,
+            auto_pickle=True,
+            compression=(compressor, decompressor),
+            profiler=self.profiler,
+        )
         self.addStorage(npSt)
         return len(self.storage_list) - 1  # st index
 
@@ -153,20 +170,130 @@ class BaseRevolver(object):
     def makespan(self):
         return 0
 
-    @abstractmethod
     def apply_forward(self):
-        return NotImplemented
+        """Executes only the forward computation while storing checkpoints,
+        then returns."""
+        while True:
+            # ask Revolve what to do next.
+            action = self.scheduler.next()
+            if action.type == Action.ADVANCE:
+                # advance forward computation
+                with self.profiler.get_timer("forward", "advance"):
+                    self.fwd_operator.apply(
+                        t_start=self.scheduler.old_capo, t_end=self.scheduler.capo
+                    )
+            elif action.type == Action.TAKESHOT:
+                # take a snapshot: copy from workspace into storage
+                with self.profiler.get_timer("forward", "takeshot"):
+                    self.save_checkpoint(action.storageIndex())
+            elif action.type == Action.CPDEL:
+                # remove a snapshot from the storage stack
+                with self.profiler.get_timer("forward", "remove"):
+                    self.remove_checkpoint(action.storageIndex())
+            elif action.type == Action.LASTFW:
+                # final step in the forward computation
+                with self.profiler.get_timer("forward", "lastfw"):
+                    self.fwd_operator.apply(
+                        t_start=self.scheduler.old_capo, t_end=self.n_timesteps
+                    )
+                break
+            elif action.type == Action.REVERSE:
+                """HRevolve scheduler doesn't have an explicit LASTFW operation.
+                Because of that, aplly_forward ends when the first REVERSE
+                action is reached.
+                """
+                break
+            else:
+                raise ValueError("Unknown action %s" % str(action))
 
-    @abstractmethod
     def apply_reverse(self):
-        return NotImplemented
+        """Executes only the backward computation while loading checkpoints,
+        then returns. The forward operator will be called as needed to
+        recompute sections of the trajectory that have not been stored in the
+        forward run."""
+        action = None
+        with self.profiler.get_timer("reverse", "reverse"):
+            """Consumes the first REVERSE action which was issued as the
+            last action of the apply_foward method.
+            """
+            self.rev_operator.apply(
+                t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
+            )
+        remove_ckp_flag = False
+        while True:
+            # ask Revolve what to do next.
+            if remove_ckp_flag is True:
+                action = HAction(
+                    action_type=Action.CPDEL,
+                    capo=self.__last_capo_read,
+                    index=[self.__last_stidx_read],
+                    old_capo=self.scheduler.old_capo,
+                    ckp=self.scheduler.cp_pointer,
+                )
+                remove_ckp_flag = False
+            else:
+                action = self.scheduler.next()
+            if action.type == Action.REVERSE:
+                # advance adjoint computation by a single step
+                with self.profiler.get_timer("reverse", "reverse"):
+                    self.fwd_operator.apply(
+                        t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
+                    )
+                    self.rev_operator.apply(
+                        t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
+                    )
+                if self.scheduler.capo == self.__last_capo_read:
+                    # h-revolve implies that B^i must also remove
+                    # the checkpoint if it was previously restored
+                    remove_ckp_flag = True
+            elif action.type == Action.TAKESHOT:
+                # take a snapshot: copy from workspace into storage
+                with self.profiler.get_timer("reverse", "takeshot"):
+                    self.save_checkpoint(action.storageIndex())
 
-    @abstractmethod
-    def save_checkpoint(self, st_idx):
-        return NotImplemented
+                    if (self.scheduler.capo == self.__last_capo_read) and (
+                        self.__last_stidx_read != action.storageIndex()
+                    ):
+                        # this condition happens whenever the scheduler
+                        # is moving a ckps from one storage to another. In
+                        # this case the first copy must be deleted
+                        remove_ckp_flag = True
+            elif action.type == Action.ADVANCE:
+                # advance forward computation
+                with self.profiler.get_timer("reverse", "advance"):
+                    self.fwd_operator.apply(
+                        t_start=self.scheduler.old_capo, t_end=self.scheduler.capo
+                    )
+            elif action.type == Action.RESTORE:
+                # restore a snapshot: copy from storage into workspace
+                with self.profiler.get_timer("reverse", "restore"):
+                    self.load_checkpoint(action.storageIndex())
+                    self.__last_capo_read = self.scheduler.capo
+                    self.__last_stidx_read = action.storageIndex()
+                action = None
+            elif action.type == Action.CPDEL:
+                # remove a snapshot from the storage stack
+                # only if it was already read
+                if self.scheduler.capo == self.__last_capo_read:
+                    with self.profiler.get_timer("reverse", "remove"):
+                        self.remove_checkpoint(action.storageIndex())
+                        self.__last_capo_read = -1
+                        self.__last_stidx_read = -1
 
-    @abstractmethod
-    def load_checkpoint(self, st_idx):
+            elif action.type == Action.TERMINATE:
+                break
+            else:
+                raise ValueError("Unknown action %s" % str(action))
+
+    def save_checkpoint(self, st_idx=0):
+        data_pointers = self.checkpoint.get_data(self.scheduler.capo)
+        self.storage_list[st_idx].save(self.scheduler.cp_pointer, data_pointers)
+
+    def load_checkpoint(self, st_idx=0):
+        locations = self.checkpoint.get_data_location(self.scheduler.capo)
+        self.storage_list[st_idx].load(self.scheduler.cp_pointer, locations)
+
+    def remove_checkpoint(self, st_idx=0):
         return NotImplemented
 
 
@@ -246,81 +373,6 @@ class SingleLevelRevolver(BaseRevolver):
             self.compression_params = compression_params
             self.addNumpyStorage(compression_params)
 
-    def apply_forward(self):
-        """Executes only the forward computation while storing checkpoints,
-        then returns."""
-        while True:
-            # ask Revolve what to do next.
-            action = self.scheduler.next()
-            if action.type == Action.ADVANCE:
-                # advance forward computation
-                with self.profiler.get_timer("forward", "advance"):
-                    self.fwd_operator.apply(
-                        t_start=self.scheduler.old_capo, t_end=self.scheduler.capo
-                    )
-            elif action.type == Action.TAKESHOT:
-                # take a snapshot: copy from workspace into storage
-                with self.profiler.get_timer("forward", "takeshot"):
-                    self.save_checkpoint(action.storageIndex())
-            elif action.type == Action.LASTFW:
-                # final step in the forward computation
-                with self.profiler.get_timer("forward", "lastfw"):
-                    self.fwd_operator.apply(
-                        t_start=self.scheduler.old_capo, t_end=self.n_timesteps
-                    )
-                break
-            else:
-                raise ValueError("Unknown action %s" % str(action))
-
-    def apply_reverse(self):
-        """Executes only the backward computation while loading checkpoints,
-        then returns. The forward operator will be called as needed to
-        recompute sections of the trajectory that have not been stored in the
-        forward run."""
-
-        with self.profiler.get_timer("reverse", "reverse"):
-            self.rev_operator.apply(
-                t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
-            )
-        while True:
-            # ask Revolve what to do next.
-            action = self.scheduler.next()
-            if action.type == Action.ADVANCE or action.type == Action.LASTFW:
-                # advance forward computation
-                with self.profiler.get_timer("reverse", "advance"):
-                    self.fwd_operator.apply(
-                        t_start=self.scheduler.old_capo, t_end=self.scheduler.capo
-                    )
-            elif action.type == Action.TAKESHOT:
-                # take a snapshot: copy from workspace into storage
-                with self.profiler.get_timer("reverse", "takeshot"):
-                    self.save_checkpoint(action.storageIndex())
-            elif action.type == Action.RESTORE:
-                # restore a snapshot: copy from storage into workspace
-                with self.profiler.get_timer("reverse", "restore"):
-                    self.load_checkpoint(action.storageIndex())
-            elif action.type == Action.REVERSE:
-                # advance adjoint computation by a single step
-                with self.profiler.get_timer("reverse", "reverse"):
-                    self.fwd_operator.apply(
-                        t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
-                    )
-                    self.rev_operator.apply(
-                        t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
-                    )
-            elif action.type == Action.TERMINATE:
-                break
-            else:
-                raise ValueError("Unknown action %s" % str(action))
-
-    def save_checkpoint(self, st_idx):
-        data_pointers = self.checkpoint.get_data(self.scheduler.capo)
-        self.storage_list[st_idx].save(self.scheduler.cp_pointer, data_pointers)
-
-    def load_checkpoint(self, st_idx):
-        locations = self.checkpoint.get_data_location(self.scheduler.capo)
-        self.storage_list[st_idx].load(self.scheduler.cp_pointer, locations)
-
 
 class MultiLevelRevolver(BaseRevolver):
     """
@@ -346,9 +398,9 @@ class MultiLevelRevolver(BaseRevolver):
         fwd_operator,
         rev_operator,
         n_timesteps,
+        storage_list,
         timings=None,
         profiler=None,
-        storage_list=[],
         uf=1,
         ub=1,
         up=1,
@@ -387,9 +439,14 @@ class MultiLevelRevolver(BaseRevolver):
         self.uf = uf  # forward cost (default=1)
         self.ub = ub  # backward cost (default=1)
         self.up = up  # turn cost (default=1)
-        self.last_capo_read = -1  # last ckp read
-        self.last_stidx_read = -1  # last storage idx read
-        self.reload_scheduler()
+
+        if storage_list is not None:
+            for st in storage_list:
+                # add Revolver profiler to each storage
+                st.profiler = self.profiler
+            self.reload_scheduler()
+        else:
+            raise ValueError("Parameter 'storage_list'can not be None.")
 
     def reload_scheduler(self, uf=1, ub=1, up=1):
         """
@@ -404,114 +461,25 @@ class MultiLevelRevolver(BaseRevolver):
             self.scheduler = HRevolve(
                 self.n_checkpoints, self.n_timesteps, arch, self.uf, self.ub, self.up
             )
+        else:
+            raise ValueError(
+                "Empty 'storage_list'. Storage list \
+                must contain at least one storage method."
+            )
 
     @property
     def makespan(self):
         return self.scheduler.makespan
 
-    def apply_forward(self):
-        """Executes only the forward computation while storing checkpoints,
-        then returns."""
-        while True:
-            # ask Revolve what to do next.
-            action = self.scheduler.next()
-            if action.type == Action.ADVANCE:
-                # advance forward computation
-                with self.profiler.get_timer("forward", "advance"):
-                    self.fwd_operator.apply(
-                        t_start=self.scheduler.old_capo, t_end=self.scheduler.capo
-                    )
-            elif action.type == Action.TAKESHOT:
-                # take a snapshot: copy from workspace into storage
-                with self.profiler.get_timer("forward", "takeshot"):
-                    self.save_checkpoint(action.storageIndex())
-            elif action.type == Action.CPDEL:
-                # remove a snapshot from the storage stack
-                with self.profiler.get_timer("forward", "remove"):
-                    self.remove_checkpoint(action.storageIndex())
-            elif action.type == Action.LASTFW:
-                # final step in the forward computation
-                with self.profiler.get_timer("forward", "lastfw"):
-                    self.fwd_operator.apply(
-                        t_start=self.scheduler.old_capo, t_end=self.n_timesteps
-                    )
-                break
-            else:
-                raise ValueError("Unknown action %s" % str(action))
-
-    def apply_reverse(self):
-        """Executes only the backward computation while loading checkpoints,
-        then returns. The forward operator will be called as needed to
-        recompute sections of the trajectory that have not been stored in the
-        forward run."""
-        while True:
-            # ask Revolve what to do next.
-            action = self.scheduler.next()
-            if action.type == Action.ADVANCE or action.type == Action.LASTFW:
-                # advance forward computation
-                with self.profiler.get_timer("reverse", "advance"):
-                    self.fwd_operator.apply(
-                        t_start=self.scheduler.old_capo, t_end=self.scheduler.capo
-                    )
-            elif action.type == Action.TAKESHOT:
-                # take a snapshot: copy from workspace into storage
-                with self.profiler.get_timer("reverse", "takeshot"):
-                    self.save_checkpoint(action.storageIndex())
-
-                with self.profiler.get_timer("reverse", "remove"):
-                    if (self.scheduler.capo == self.last_capo_read) and (
-                        self.last_stidx_read != action.storageIndex()
-                    ):
-                        # this condition happens whenever the scheduler
-                        # is moving a ckp from one storage to another. In
-                        # this case the first copy must be deleted
-                        self.remove_checkpoint(self.last_stidx_read)
-            elif action.type == Action.RESTORE:
-                # restore a snapshot: copy from storage into workspace
-                with self.profiler.get_timer("reverse", "restore"):
-                    self.load_checkpoint(action.storageIndex())
-                    self.last_capo_read = self.scheduler.capo
-                    self.last_stidx_read = action.storageIndex()
-            elif action.type == Action.CPDEL:
-                # remove a snapshot from the storage stack
-                # only if it was already read
-                if self.scheduler.capo == self.last_capo_read:
-                    with self.profiler.get_timer("reverse", "remove"):
-                        self.remove_checkpoint(action.storageIndex())
-                        self.last_capo_read = -1
-                        self.last_stidx_read = -1
-            elif action.type == Action.REVERSE:
-                # advance adjoint computation by a single step
-                with self.profiler.get_timer("reverse", "reverse"):
-                    self.fwd_operator.apply(
-                        t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
-                    )
-                    self.rev_operator.apply(
-                        t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
-                    )
-                # h-revolve implies that B^i must also remove
-                # the checkpoint if it was previously restored
-                if self.scheduler.capo == self.last_capo_read:
-                    # remove a snapshot from the storage stack
-                    with self.profiler.get_timer("reverse", "remove"):
-                        self.remove_checkpoint(self.last_stidx_read)
-                        self.last_capo_read = -1
-                        self.last_stidx_read = -1
-
-            elif action.type == Action.TERMINATE:
-                break
-            else:
-                raise ValueError("Unknown action %s" % str(action))
-
-    def save_checkpoint(self, st_idx):
+    def save_checkpoint(self, st_idx=0):
         data_pointers = self.checkpoint.get_data(self.scheduler.capo)
         self.storage_list[st_idx].push(data_pointers)
 
-    def load_checkpoint(self, st_idx):
+    def load_checkpoint(self, st_idx=0):
         locations = self.checkpoint.get_data_location(self.scheduler.capo)
         self.storage_list[st_idx].peek(locations)
 
-    def remove_checkpoint(self, st_idx):
+    def remove_checkpoint(self, st_idx=0):
         locations = self.checkpoint.get_data_location(self.scheduler.capo)
         self.storage_list[st_idx].pop(locations)
 

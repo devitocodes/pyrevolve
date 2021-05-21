@@ -311,11 +311,11 @@ class Sequence:
                 sz += 1
         return sz
 
-    def get_flat_op_list(self):
+    def get_flat_op_list(self, i=0):
         op_list = []
         for seq in self.sequence:
             if seq.type == "Function":
-                op_list += seq.get_flat_op_list()
+                op_list += seq.get_flat_op_list(i+1)
             else:
                 op_list.append(seq)
         return op_list

@@ -1,6 +1,6 @@
 from utils import SimpleOperator, SimpleCheckpoint
 from utils import IncrementCheckpoint, IncOperator
-from pyrevolve import MultiLevelRevolver, Profiler
+from pyrevolve import MultiLevelRevolver
 from pyrevolve import NumpyStorage, DiskStorage
 import numpy as np
 import pytest
@@ -23,11 +23,10 @@ def test_forward_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
     f = IncOperator(1, df)
     b = IncOperator(-1, db)
 
-    profiler = Profiler()
     npStorage = NumpyStorage(cp.size, nt, cp.dtype,
-                             profiler, wd=mwd, rd=mrd)
+                             wd=mwd, rd=mrd)
     dkStorage = DiskStorage(cp.size, nt, cp.dtype,
-                            profiler, filedir="./",
+                            filedir="./",
                             singlefile=singlefile,
                             wd=dwd, rd=drd)
     st_list = [npStorage, dkStorage]
@@ -56,11 +55,10 @@ def test_reverse_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
     f = IncOperator(1, df)
     b = IncOperator(-1, df, db)
 
-    profiler = Profiler()
     npStorage = NumpyStorage(cp.size, nt, cp.dtype,
-                             profiler, wd=mwd, rd=mrd)
+                             wd=mwd, rd=mrd)
     dkStorage = DiskStorage(cp.size, nt, cp.dtype,
-                            profiler, filedir="./",
+                            filedir="./",
                             singlefile=singlefile,
                             wd=dwd, rd=drd)
     st_list = [npStorage, dkStorage]
@@ -88,11 +86,10 @@ def test_num_loads_and_saves(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
     f = SimpleOperator()
     b = SimpleOperator()
 
-    profiler = Profiler()
     npStorage = NumpyStorage(cp.size, nt, cp.dtype,
-                             profiler, wd=mwd, rd=mrd)
+                             wd=mwd, rd=mrd)
     dkStorage = DiskStorage(cp.size, nt, cp.dtype,
-                            profiler, filedir="./",
+                            filedir="./",
                             singlefile=singlefile,
                             wd=dwd, rd=drd)
     st_list = [npStorage, dkStorage]

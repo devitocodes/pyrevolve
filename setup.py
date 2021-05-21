@@ -24,10 +24,11 @@ class lazy_cythonize(list):
 
 def extensions():
     from Cython.Build import cythonize
-    ext = Extension("pyrevolve.crevolve", sources=["pyrevolve/crevolve.pyx",
+    ext = Extension("pyrevolve.crevolve", sources=["pyrevolve/schedulers/crevolve.pyx",
                                                    "src/revolve_c.cpp",
                                                    "src/revolve.cpp"],
-                    include_dirs=[".", "pyrevolve"], language="c++")
+                    include_dirs=[".", "pyrevolve"],
+                    language="c++")
     return cythonize([ext])
 
 

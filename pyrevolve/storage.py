@@ -19,10 +19,7 @@ class Storage(object):
     Stack interface at the same time is not advised, as it
     can mess up internal pointers.
     CRevolve Scheduler uses Vector interface while H-Revolve
-    uses Stack. Stack mode allows H-Revolve to use far less
-    memory than Revolve does. When using stack mode for H-Revolve
-    scheduler, the n_ckp can be smaller than the actual number
-    of time steps in the adjoint problem.
+    uses Stack.
 
     Attributes:
         size_ckp:   size of one checkpoint (in bytes)
