@@ -1,4 +1,5 @@
 from abc import ABCMeta, abstractmethod
+
 try:
     import pyrevolve.crevolve as cr
 except ImportError:
@@ -84,6 +85,9 @@ class Action(object):
     CPDEL = 5
     TERMINATE = 6
 
+    # Extra action for CRevolve scheduler
+    REVSTART = 15
+
     type_names = {
         ADVANCE: "ADVANCE",
         TAKESHOT: "TAKESHOT",
@@ -92,6 +96,7 @@ class Action(object):
         REVERSE: "REVERSE",
         CPDEL: "CPDEL",
         TERMINATE: "TERMINATE",
+        REVSTART: "REVSTART",
     }
 
     def __init__(self, action_type, capo, old_capo, ckp):
@@ -144,11 +149,17 @@ class HAction(Action):
         "Read": Action.RESTORE,
         "Write": Action.TAKESHOT,
         "Discard": Action.CPDEL,
-        "Terminate": Action.TERMINATE
+        "Terminate": Action.TERMINATE,
     }
 
     def __init__(
-        self, action_type=Action.TERMINATE, h_op=None, capo=0, old_capo=0, ckp=0, index=0
+        self,
+        action_type=Action.TERMINATE,
+        h_op=None,
+        capo=0,
+        old_capo=0,
+        ckp=0,
+        index=0,
     ):
         if h_op is None:
             super().__init__(action_type, capo, old_capo, ckp)
@@ -248,14 +259,27 @@ class CRevolve(Scheduler):
     def __init__(self, n_checkpoints, n_timesteps):
         super().__init__(n_checkpoints, n_timesteps)
         self.revolve = cr.CRevolve(n_checkpoints, n_timesteps, None)
+        self.__revstart_action = None
 
     def next(self):
-        return CAction(
-            self.translations[self.revolve.revolve()],
-            self.capo,
-            self.old_capo,
-            self.cp_pointer,
-        )
+        if self.__revstart_action is None:
+            ca = CAction(
+                action_type=self.translations[self.revolve.revolve()],
+                capo=self.capo,
+                old_capo=self.old_capo,
+                ckp=self.cp_pointer,
+            )
+            if ca.type is Action.LASTFW:
+                self.__revstart_action = CAction(
+                    action_type=Action.REVSTART,
+                    capo=self.capo,
+                    old_capo=self.old_capo,
+                    ckp=self.cp_pointer,
+                )
+        else:
+            ca = self.__revstart_action
+            self.__revstart_action = None
+        return ca
 
     @property
     def capo(self):

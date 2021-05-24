@@ -214,15 +214,6 @@ class BaseRevolver(object):
 
         action = None
         remove_ckp_flag = False
-        if self.scheduler.capo < self.n_timesteps:
-            """ Sets the rev_operator to 'nt' only if its not already there.
-            This condition happens when using CRevolve shceduler, but not
-            when using HRevolve.
-            """
-            with self.profiler.get_timer("reverse", "reverse"):
-                self.rev_operator.apply(
-                    t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
-                )
         while True:
             # ask Revolve what to do next.
             if remove_ckp_flag is True:
@@ -236,6 +227,7 @@ class BaseRevolver(object):
                 remove_ckp_flag = False
             else:
                 action = self.scheduler.next()
+
             if action.type == Action.REVERSE:
                 # advance adjoint computation by a single step
                 with self.profiler.get_timer("reverse", "reverse"):
@@ -249,6 +241,15 @@ class BaseRevolver(object):
                     # h-revolve implies that B^i must also remove
                     # the checkpoint if it was previously restored
                     remove_ckp_flag = True
+            elif action.type == Action.REVSTART:
+                """Sets the rev_operator to 'nt' only if its not already there.
+                This condition happens when using CRevolve shceduler, but not
+                when using HRevolve.
+                """
+                with self.profiler.get_timer("reverse", "reverse"):
+                    self.rev_operator.apply(
+                        t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
+                    )
             elif action.type == Action.TAKESHOT:
                 # take a snapshot: copy from workspace into storage
                 with self.profiler.get_timer("reverse", "takeshot"):
