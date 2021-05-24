@@ -211,15 +211,18 @@ class BaseRevolver(object):
         then returns. The forward operator will be called as needed to
         recompute sections of the trajectory that have not been stored in the
         forward run."""
+
         action = None
-        with self.profiler.get_timer("reverse", "reverse"):
-            """Consumes the first REVERSE action which was issued as the
-            last action of the apply_foward method.
-            """
-            self.rev_operator.apply(
-                t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
-            )
         remove_ckp_flag = False
+        if self.scheduler.capo < self.n_timesteps:
+            """ Sets the rev_operator to 'nt' only if its not already there.
+            This condition happens when using CRevolve shceduler, but not
+            when using HRevolve.
+            """
+            with self.profiler.get_timer("reverse", "reverse"):
+                self.rev_operator.apply(
+                    t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
+                )
         while True:
             # ask Revolve what to do next.
             if remove_ckp_flag is True:
