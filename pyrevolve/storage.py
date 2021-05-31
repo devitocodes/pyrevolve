@@ -143,51 +143,60 @@ class DiskStorage(Storage):
         wd=0,
         rd=0,
         name="DiskStorage",
+        keepfiles=False
     ):
         super().__init__(size_ckp, n_ckp, dtype, profiler, wd=wd, rd=rd, name=name)
         self.singlefile = singlefile
+        self.keepfiles = keepfiles
         self.filedir = None
+        self.__myPID = os.getpid()
+        self.__myTimestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+        self.__datDirName = "dat_D{}_PID{}/".format(self.__myTimestamp, self.__myPID)
+        self.__datFileTemplate = "CKP_D{}_PID{}.dat".format(
+            self.__myTimestamp, self.__myPID
+        )
         if filedir is None:
-            self.filedir = "./dat/"
+            self.filedir = "./" + self.__datDirName
         else:
-            self.filedir = filedir + "/dat/"
+            self.filedir = filedir + self.__datDirName
 
         if not os.path.exists(self.filedir):
             os.makedirs(self.filedir)
 
         """ create unique file names"""
-        self.filename = self.filedir + "CKP_D{}_PID{}.dat".format(
-            datetime.datetime.now().strftime("%Y%m%d-%H%M%S"), os.getpid()
-        )
+        self.datFileName = self.filedir + self.__datFileTemplate
 
         self.__current_size = 0
         self.shapes = {}
         if self.singlefile is True:
-            self.storage_w = open(self.filename, "bw+")
-            self.storage_r = open(self.filename, "br+")
+            self.storage_w = open(self.datFileName, "bw+")
+            self.storage_r = open(self.datFileName, "br+")
             self.default_storage = self.storage_w
 
-    """ Removes .dat file by default """
-
     def __del__(self):
+        """ Removes .dat file by default """
+        if self.keepfiles is False:
+            self.removeDatdir()
+
+    def removeDatdir(self):
+        """ Removes dat file directory """
         shutil.rmtree(self.filedir, ignore_errors=True)
 
-    def setW(self):
+    def __setW(self):
         """Sets WRITE stream as default"""
         self.default_storage = self.storage_w
 
-    def setR(self):
+    def __setR(self):
         """Sets READ stream as default"""
         self.default_storage = self.storage_r
 
-    def check_filedir(self):
+    def checkFilesDir(self):
         if not os.path.exists(self.filedir):
             os.makedirs(self.filedir)
 
-    """Returns a pointer to the contiguous chunk of memory reserved for the
-    checkpoint with number `key`."""
-
     def __getitem__(self, key):
+        """Returns a pointer to the contiguous chunk of memory reserved for the
+        checkpoint with number `key`."""
         assert key < self.n_ckp
         noffset = key * self.size_ckp
         if self.__current_size > 0:
@@ -202,11 +211,11 @@ class DiskStorage(Storage):
         with self.profiler.get_timer("storage", "copy_save"):
             shapes = []
             if self.singlefile is True:
-                self.setW()
+                self.__setW()
                 slot = self[key]
             else:
-                ckpfile = self.filename + (".k%d" % (key))
-                self.check_filedir()
+                ckpfile = self.datFileName + (".k%d" % (key))
+                self.checkFilesDir()
                 slot = open(ckpfile, "bw+")
 
             for ptr in data_pointers:
@@ -224,11 +233,11 @@ class DiskStorage(Storage):
     def load(self, key, locations):
         with self.profiler.get_timer("storage", "copy_load"):
             if self.singlefile is True:
-                self.setR()
+                self.__setR()
                 slot = self[key]
             else:
-                ckpfile = self.filename + (".k%d" % (key))
-                self.check_filedir()
+                ckpfile = self.datFileName + (".k%d" % (key))
+                self.checkFilesDir()
                 slot = open(ckpfile, "br+")
 
             offset = 0
