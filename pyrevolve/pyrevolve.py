@@ -548,7 +548,7 @@ class DiskRevolver(SingleLevelRevolver):
         filedir="./",
         singlefile=True,
     ):
-        super.__init__(
+        super().__init__(
             checkpoint,
             fwd_operator,
             rev_operator,
