@@ -443,7 +443,7 @@ class MultiLevelRevolver(BaseRevolver):
         self.uf = uf  # forward cost (default=1)
         self.ub = ub  # backward cost (default=1)
         self.up = up  # turn cost (default=1)
-
+        self.arch = None
         if storage_list is not None:
             for st in storage_list:
                 # add Revolver profiler to each storage
@@ -461,9 +461,9 @@ class MultiLevelRevolver(BaseRevolver):
             self.uf = uf
             self.ub = ub
             self.up = up
-            arch = Architecture(self.storage_list)
+            self.arch = Architecture(self.storage_list)
             self.scheduler = HRevolve(
-                self.n_checkpoints, self.n_timesteps, arch, self.uf, self.ub, self.up
+                self.n_checkpoints, self.n_timesteps, self.arch, self.uf, self.ub, self.up
             )
         else:
             raise ValueError(
