@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractproperty, abstractmethod
 import numpy as np
 from . import crevolve as cr
 from .compression import init_compression as init
-from .schedulers import CRevolve, HAction, HRevolve, Action, Architecture
+from .schedulers import CRevolve, HRevolve, Action, Architecture
 from .profiling import Profiler
 from .storage import NumpyStorage, BytesStorage, DiskStorage
 
@@ -92,7 +92,7 @@ class BaseRevolver(object):
             self.profiler = Profiler()
         else:
             self.profiler = profiler
-        
+
         if storage_list is None:
             self.storage_list = []
         else:
@@ -105,9 +105,6 @@ class BaseRevolver(object):
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.scheduler = scheduler
-
-        self.__last_capo_read = -1  # last ckp read
-        self.__last_stidx_read = -1  # last storage idx read
 
     def addStorage(self, new_storage):
         self.storage_list.append(new_storage)
@@ -215,23 +212,10 @@ class BaseRevolver(object):
         then returns. The forward operator will be called as needed to
         recompute sections of the trajectory that have not been stored in the
         forward run."""
-
         action = None
-        remove_ckp_flag = False
         while True:
             # ask Revolve what to do next.
-            if remove_ckp_flag is True:
-                action = HAction(
-                    action_type=Action.CPDEL,
-                    capo=self.__last_capo_read,
-                    index=[self.__last_stidx_read],
-                    old_capo=self.scheduler.old_capo,
-                    ckp=self.scheduler.cp_pointer,
-                )
-                remove_ckp_flag = False
-            else:
-                action = self.scheduler.next()
-
+            action = self.scheduler.next()
             if action.type == Action.REVERSE:
                 # advance adjoint computation by a single step
                 with self.profiler.get_timer("reverse", "reverse"):
@@ -241,10 +225,6 @@ class BaseRevolver(object):
                     self.rev_operator.apply(
                         t_start=self.scheduler.capo, t_end=self.scheduler.capo + 1
                     )
-                if self.scheduler.capo == self.__last_capo_read:
-                    # h-revolve implies that B^i must also remove
-                    # the checkpoint if it was previously restored
-                    remove_ckp_flag = True
             elif action.type == Action.REVSTART:
                 """Sets the rev_operator to 'nt' only if its not already there.
                 This condition happens when using CRevolve shceduler, but not
@@ -258,14 +238,6 @@ class BaseRevolver(object):
                 # take a snapshot: copy from workspace into storage
                 with self.profiler.get_timer("reverse", "takeshot"):
                     self.save_checkpoint(action.storageIndex())
-
-                    if (self.scheduler.capo == self.__last_capo_read) and (
-                        self.__last_stidx_read != action.storageIndex()
-                    ):
-                        # this condition happens whenever the scheduler
-                        # is moving a ckps from one storage to another. In
-                        # this case the first copy must be deleted
-                        remove_ckp_flag = True
             elif action.type == Action.ADVANCE:
                 # advance forward computation
                 with self.profiler.get_timer("reverse", "advance"):
@@ -276,18 +248,10 @@ class BaseRevolver(object):
                 # restore a snapshot: copy from storage into workspace
                 with self.profiler.get_timer("reverse", "restore"):
                     self.load_checkpoint(action.storageIndex())
-                    self.__last_capo_read = self.scheduler.capo
-                    self.__last_stidx_read = action.storageIndex()
-                action = None
             elif action.type == Action.CPDEL:
                 # remove a snapshot from the storage stack
-                # only if it was already read
-                if self.scheduler.capo == self.__last_capo_read:
-                    with self.profiler.get_timer("reverse", "remove"):
-                        self.remove_checkpoint(action.storageIndex())
-                        self.__last_capo_read = -1
-                        self.__last_stidx_read = -1
-
+                with self.profiler.get_timer("reverse", "remove"):
+                    self.remove_checkpoint(action.storageIndex())
             elif action.type == Action.TERMINATE:
                 break
             else:
