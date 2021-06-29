@@ -70,7 +70,7 @@ class BaseRevolver(object):
         rev_operator,
         n_checkpoints,
         n_timesteps,
-        storage_list=[],
+        storage_list=None,
         scheduler=None,
         timings=None,
         profiler=None,
@@ -92,6 +92,11 @@ class BaseRevolver(object):
             self.profiler = Profiler()
         else:
             self.profiler = profiler
+        
+        if storage_list is None:
+            self.storage_list = []
+        else:
+            self.storage_list = storage_list
 
         self.checkpoint = checkpoint
         self.n_checkpoints = n_checkpoints
@@ -100,7 +105,6 @@ class BaseRevolver(object):
         self.fwd_operator = fwd_operator
         self.rev_operator = rev_operator
         self.scheduler = scheduler
-        self.storage_list = storage_list
 
         self.__last_capo_read = -1  # last ckp read
         self.__last_stidx_read = -1  # last storage idx read
@@ -115,7 +119,7 @@ class BaseRevolver(object):
     def resetStorageList(self):
         self.storage_list.clear()
 
-    def addDiskStorage(self, filedir="./", singlefile=False, wd=0, rd=0, size=1):
+    def addDiskStorage(self, filedir="./", singlefile=False, wd=0, rd=0):
         diskSt = DiskStorage(
             self.checkpoint.size,
             self.n_checkpoints,
@@ -427,8 +431,8 @@ class MultiLevelRevolver(BaseRevolver):
             profiler:           profiler
             storage_list:       list of storage objects
             uf:                 forward operation cost
-            uf:                 backward operation cost
-            uf:                 turn operation cost
+            ud:                 backward operation cost
+            up:                 turn operation cost
         """
         super().__init__(
             checkpoint,
