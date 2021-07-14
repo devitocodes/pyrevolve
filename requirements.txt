@@ -1,2 +1,4 @@
 .
+cython
+versioneer
 flake8
