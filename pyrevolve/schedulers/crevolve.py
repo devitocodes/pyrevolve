@@ -35,8 +35,21 @@ class CRevolve(Scheduler):
 
     def __init__(self, n_checkpoints, n_timesteps):
         super().__init__(n_checkpoints, n_timesteps)
-        self.revolve = cr.CRevolve(n_checkpoints, n_timesteps, None)
         self.__revstart_action = None
+        self.revolve = cr.CRevolve(n_checkpoints, n_timesteps, None)
+        self.__ratio = self.__calc_ratio()
+        self.revolve = cr.CRevolve(n_checkpoints, n_timesteps, None)
+
+    def __calc_ratio(self):
+        fcomp = 0
+        ca = self.next()
+        while ca.type != Action.TERMINATE:
+            if (ca.type == Action.ADVANCE) or (ca.type == Action.LASTFW):
+                st = ca.old_capo
+                end = ca.capo
+                fcomp += (end-st)
+            ca = self.next()
+        return (fcomp/self.n_timesteps)
 
     def next(self):
         if self.__revstart_action is None:
@@ -69,3 +82,7 @@ class CRevolve(Scheduler):
     @property
     def cp_pointer(self):
         return self.revolve.check
+
+    @property
+    def ratio(self):
+        return self.__ratio

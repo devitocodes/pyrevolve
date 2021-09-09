@@ -54,6 +54,7 @@ class Storage(object):
         self.name = name
         self.__maxsize = self.size_ckp * n_ckp
         self.__current_size = 0
+        self.__itemsize = np.dtype(self.dtype).itemsize
 
         # stack interface controls
         self.__stack_ptr = -1
@@ -97,12 +98,17 @@ class Storage(object):
 
     @property
     def maxsize(self):
-        """Returns the maximum storage size in bytes"""
+        """Returns the maximum storage size in words of 'dtype'"""
         return self.__maxsize
 
     @property
+    def maxsize_in_bytes(self):
+        """Returns the maximum storage size in bytes"""
+        return self.__maxsize*self.__itemsize
+
+    @property
     def size(self):
-        """Returns the current storage size in bytes"""
+        """Returns the current storage size in words of 'dtype'"""
         return self.__current_size
 
     @property

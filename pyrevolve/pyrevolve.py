@@ -171,6 +171,10 @@ class BaseRevolver(object):
     def makespan(self):
         return 0
 
+    @property
+    def ratio(self):
+        return 0
+
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,
         then returns."""
@@ -345,6 +349,10 @@ class SingleLevelRevolver(BaseRevolver):
             self.compression_params = compression_params
             self.addNumpyStorage(compression_params)
 
+    @property
+    def ratio(self):
+        return self.scheduler.ratio
+
 
 class MultiLevelRevolver(BaseRevolver):
     """
@@ -442,6 +450,10 @@ class MultiLevelRevolver(BaseRevolver):
     @property
     def makespan(self):
         return self.scheduler.makespan
+
+    @property
+    def ratio(self):
+        return self.scheduler.ratio
 
     def save_checkpoint(self, st_idx=0):
         data_pointers = self.checkpoint.get_data(self.scheduler.capo)

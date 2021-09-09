@@ -729,6 +729,14 @@ class HRevolve(Scheduler):
 
         return ret
 
+    def storage(self, k):
+        """Returns a list of all checkpoint keys stored at the k-th
+        storage level"""
+        if k < self.architecture.nblevels:
+            return self.__sequence.storage[k]
+        else:
+            return None
+
     @property
     def capo(self):
         return self.__capo
@@ -744,6 +752,20 @@ class HRevolve(Scheduler):
     @property
     def makespan(self):
         return self.__sequence.makespan
+
+    @property
+    def ratio(self):
+        # compute recomputation ratio:
+        fcomp = 0
+        for op in self.__oplist:
+            if op.type == "Forwards":
+                st = op.index[0]
+                end = op.index[1]
+                fcomp += (end-st)
+            elif op.type == "Forward":
+                fcomp += 1
+
+        return (fcomp/self.n_timesteps)
 
     def hrevolve_aux(self, l, K, cmem, hoptp=None, hopt=None):
         """

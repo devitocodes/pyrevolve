@@ -52,7 +52,7 @@ class Profiler(object):
         results = {}
         for s_n, s_dict in self.timings.items():
             for a_n, a_time in s_dict.items():
-                results['%s_%s_timing' % (s_n, a_n)] = a_time
+                results['%s_%s_timing' % (s_n, a_n)] = "{:.2f}".format(a_time)
 
         for s_n, s_dict in self.counts.items():
             for a_n, a_time in s_dict.items():
