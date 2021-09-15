@@ -455,6 +455,11 @@ class MultiLevelRevolver(BaseRevolver):
     def ratio(self):
         return self.scheduler.ratio
 
+    def storage_ckps(self, k):
+        """Returns a list of all checkpoint keys stored at the k-th
+        storage level"""
+        return self.scheduler.storage(k)
+
     def save_checkpoint(self, st_idx=0):
         data_pointers = self.checkpoint.get_data(self.scheduler.capo)
         self.storage_list[st_idx].push(data_pointers)
