@@ -272,6 +272,11 @@ class BaseRevolver(object):
     def remove_checkpoint(self, st_idx=0):
         return NotImplemented
 
+    def storage_ckps(self,  k=0):
+        """Returns a list of all checkpoint keys stored at the k-th
+        storage level"""
+        return NotImplemented
+
 
 class SingleLevelRevolver(BaseRevolver):
     """
@@ -353,6 +358,12 @@ class SingleLevelRevolver(BaseRevolver):
     def ratio(self):
         return self.scheduler.ratio
 
+    def storage_ckps(self, k=0):
+        """Returns a list of all checkpoint keys stored at the k-th
+        storage level"""
+        k = 0 # single level always uses first storage object on storage_list
+        return self.scheduler.storage(k)
+
 
 class MultiLevelRevolver(BaseRevolver):
     """
@@ -397,7 +408,6 @@ class MultiLevelRevolver(BaseRevolver):
             checkpoint:         checkpoint object
             fwd_operator:       forward operator
             rev_operator:       backward operator
-            n_checkpoints:      number of checkpoints
             n_timesteps:        number of timesteps
             timings:            timings
             profiler:           profiler
@@ -455,7 +465,7 @@ class MultiLevelRevolver(BaseRevolver):
     def ratio(self):
         return self.scheduler.ratio
 
-    def storage_ckps(self, k):
+    def storage_ckps(self, k=0):
         """Returns a list of all checkpoint keys stored at the k-th
         storage level"""
         return self.scheduler.storage(k)

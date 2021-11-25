@@ -662,6 +662,10 @@ class HRevolve(Scheduler):
     def resetSequence(self):
         self.__copindex = 0
 
+    @property
+    def oplist(self):
+        return self.__oplist
+
     def next(self):
         if self.__copindex >= self.n_ops:
             ha = HAction(action_type=Action.TERMINATE)

@@ -30,7 +30,7 @@ class ForwardOperator(pr.Operator):
         self.m = m
 
     def apply(self, t_start, t_end):
-        print((">"*(t_end-t_start)).rjust(t_end))
+        # print((">"*(t_end-t_start)).rjust(t_end))
         for i in range(t_start, t_end):
             u.data = u.data + m.data
 
@@ -42,7 +42,7 @@ class ReverseOperator(pr.Operator):
         self.m = m
 
     def apply(self, t_start, t_end):
-        print(("<"*(t_end-t_start)).rjust(t_end))
+        # print(("<"*(t_end-t_start)).rjust(t_end))
         for i in range(t_end, t_start, -1):
             v.data = v.data + m.data
 

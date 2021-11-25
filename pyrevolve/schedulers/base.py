@@ -102,8 +102,8 @@ class Action(object):
             dict(
                 {
                     "type": self.type_names[self.type],
-                    "capo": self.capo,
-                    "old_capo": self.old_capo,
+                    "from": self.old_capo,
+                    "to": self.capo,
                     "ckp": self.ckp,
                 }
             )
@@ -143,3 +143,7 @@ class Scheduler(object):
     @property
     def cp_pointer(self):
         return 0
+
+    @property
+    def oplist(self):
+        return None

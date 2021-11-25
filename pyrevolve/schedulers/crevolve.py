@@ -37,19 +37,28 @@ class CRevolve(Scheduler):
         super().__init__(n_checkpoints, n_timesteps)
         self.__revstart_action = None
         self.revolve = cr.CRevolve(n_checkpoints, n_timesteps, None)
+        self.__oplist = []
+        self.__stored_ckps = []
         self.__ratio = self.__calc_ratio()
         self.revolve = cr.CRevolve(n_checkpoints, n_timesteps, None)
 
     def __calc_ratio(self):
         fcomp = 0
         ca = self.next()
+        self.__oplist.append(ca)
         while ca.type != Action.TERMINATE:
             if (ca.type == Action.ADVANCE) or (ca.type == Action.LASTFW):
                 st = ca.old_capo
                 end = ca.capo
                 fcomp += (end-st)
             ca = self.next()
+            self.__oplist.append(ca)
+
         return (fcomp/self.n_timesteps)
+    
+    @property
+    def oplist(self):
+        return self.__oplist
 
     def next(self):
         if self.__revstart_action is None:
@@ -66,6 +75,8 @@ class CRevolve(Scheduler):
                     old_capo=self.old_capo,
                     ckp=self.cp_pointer,
                 )
+            if ca.type is Action.TAKESHOT:
+                self.__stored_ckps.append(ca.capo)
         else:
             ca = self.__revstart_action
             self.__revstart_action = None
@@ -86,3 +97,8 @@ class CRevolve(Scheduler):
     @property
     def ratio(self):
         return self.__ratio
+
+    def storage(self, k):
+        """Returns a list of all checkpoint keys stored at the k-th
+        storage level. For CRevolve, k is always 0 """
+        return self.__stored_ckps

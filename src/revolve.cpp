@@ -44,13 +44,13 @@ int numforw(int steps, int snaps)
 
   if (snaps < 1)
   {
-    cout << " error occurs in numforw: snaps < 1 " << endl ;
+    // cout << " error occurs in numforw: snaps < 1 " << endl ;
     return -1;
   }
   if (snaps > checkup)
   {
-    cout << " number of snaps = " << snaps << " exceeds checkup " << endl;
-    cout << " redefine 'checkup'" << endl;
+    // cout << " number of snaps = " << snaps << " exceeds checkup " << endl;
+    // cout << " redefine 'checkup'" << endl;
     return -1;
   }
   reps = 0;
@@ -60,11 +60,11 @@ int numforw(int steps, int snaps)
     reps += 1;
     range = range*(reps + snaps)/reps;
   }
-  cout << " range = " << range << " reps= " <<  reps << endl;
+  // cout << " range = " << range << " reps= " <<  reps << endl;
   if (reps > repsup)
   {
-    cout << " number of reps = " << reps << " exceeds repsup " << endl;
-    cout << " redefine 'repsup' " << endl;
+    // cout << " number of reps = " << reps << " exceeds repsup " << endl;
+    // cout << " redefine 'repsup' " << endl;
     return -1;
   }
   num = reps * steps - range*reps/(snaps+1);
@@ -83,8 +83,8 @@ Online::Online(int sn,Checkpoint *c,bool o=false) : Schedule(sn,c)
 {
 
   checkpoint->init_ord_ch(); //  ord_ch = new int[snaps];
-  //cout <<"\n Vectors size = " << checkpoint->ord_ch.size() << endl;
-  //for(int i=0;i<snaps;i++) cout << " " << checkpoint->ord_ch[i];
+  // cout <<"\n Vectors size = " << checkpoint->ord_ch.size() << endl;
+  // for(int i=0;i<snaps;i++) cout << " " << checkpoint->ord_ch[i];
   output=o;
   
 }
@@ -122,7 +122,7 @@ Online_r2::Online_r2(int sn,Checkpoint *c,bool o=false) : Online(sn,c,o)
 
 ACTION::action Online_r2::revolve()
 {
-  //cout <<" check = "<< check << " ch[check] " << checkpoint->ch[check]<< " capo " << capo << endl; 
+  // cout <<" check = "<< check << " ch[check] " << checkpoint->ch[check]<< " capo " << capo << endl; 
   checkpoint->commands++;
   if ((check == -1) || ((checkpoint->ch[check] != capo) && (capo <= snaps-1)))
     // condition for takeshot for r=1
@@ -774,8 +774,8 @@ ACTION::action Moin::revolve()
   //checkpoint->print_ch(cout);
   //checkpoint->print_ord_ch(cout);
   
-  //cout << "\n \n capo = " << capo;
-  //cout << "\n \n snaps = " << snaps;
+  // cout << "\n \n capo = " << capo;
+  // cout << "\n \n snaps = " << snaps;
   checkpoint->commands++;
   if(start) 
   {
@@ -815,7 +815,7 @@ ACTION::action Moin::revolve()
   {
     if(is_dispensable(&index))
     {
-      //cout << "is_dispensable " << endl;
+      // cout << "is_dispensable " << endl;
       checkpoint->ch[index] = capo;
       l[index] = 0;
       d[index] = false;
@@ -827,13 +827,13 @@ ACTION::action Moin::revolve()
     }
     else if(is_d)
     {
-      //cout << "is_d=true " << endl;
+      // cout << "is_d=true " << endl;
       checkpoint->ch[index_old] = capo;
       check=index_old;
       lmin = get_lmin();
       l[index_old] = lmin+1;
       d[index_old]=false;
-      //cout << "check = " << check << "  forward= " << lmin+1 << endl;
+      // cout << "check = " << check << "  forward= " << lmin+1 << endl;
       adjust_cp(index_old);
       is_d=false;
       forward=1;
@@ -843,7 +843,7 @@ ACTION::action Moin::revolve()
     else
     {
       lmin = get_lmin();
-      //cout << "lmin = " << lmin << endl;
+      // cout << "lmin = " << lmin << endl;
       forward = lmin+1;
       capo +=forward;
       is_d=true;
@@ -851,7 +851,7 @@ ACTION::action Moin::revolve()
       checkpoint->advances++;
       return ACTION::advance;
       
-      //cout << "i = " << i << endl;
+      // cout << "i = " << i << endl;
       
     }
   }
@@ -964,9 +964,9 @@ ACTION::action Offline::revolve()
       {
       	if (info > 0)
       	{
-      		cout << "\n advances: " << setw(5) << checkpoint->advances;
-      		cout << "\n takeshots: " << setw(5) << checkpoint->takeshots;
-      		cout << "\n commands: " << setw(5) << checkpoint->commands << endl;
+      		// cout << "\n advances: " << setw(5) << checkpoint->advances;
+      		// cout << "\n takeshots: " << setw(5) << checkpoint->takeshots;
+      		// cout << "\n commands: " << setw(5) << checkpoint->commands << endl;
       	}
       	return ACTION::terminate;
       }
@@ -1022,8 +1022,8 @@ ACTION::action Offline::revolve()
       			info = 12;
       			return ACTION::error;
       		}
-      		cout << " prediction of needed forward steps: " << setw(8) << num << " => " << endl;
-      		cout << " slowdown factor: " << setiosflags(ios::fixed) << setprecision(4) << ((double) num)/(fine-capo)<< endl << endl;
+      		// cout << " prediction of needed forward steps: " << setw(8) << num << " => " << endl;
+      		// cout << " slowdown factor: " << setiosflags(ios::fixed) << setprecision(4) << ((double) num)/(fine-capo)<< endl << endl;
       	}
       	oldfine = fine;
       	//last_action=takeshot;
@@ -1170,7 +1170,7 @@ Revolve::Revolve(int st,int sn,int sn_ram)
   v = get_write_and_read_counts();
   sort(v.begin(),v.end());
   mid=v[snaps-sn_ram];
-  //cout << mid << endl;
+  // cout << mid << endl;
   for(int i=snaps-1;i>=0;i--)
   {
     if(v[i]>=mid && num<sn_ram)
