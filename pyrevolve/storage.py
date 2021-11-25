@@ -290,7 +290,7 @@ class NumpyStorage(Storage):
                 data = ptr.ravel()
             with self.profiler.get_timer("storage", "copy_save"):
                 np.copyto(slot[offset:(len(data) + offset)], data)
-            
+
             offset += len(data)
             shapes.append(ptr.shape)
         self.shapes[key] = shapes

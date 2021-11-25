@@ -55,7 +55,7 @@ class CRevolve(Scheduler):
             self.__oplist.append(ca)
 
         return (fcomp/self.n_timesteps)
-    
+
     @property
     def oplist(self):
         return self.__oplist
