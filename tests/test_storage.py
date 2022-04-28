@@ -30,8 +30,9 @@ def test_save_and_restore_with_compression(scheme):
                                      (10, 9), (10, 10), (10, 11), (10, 12)])
 @pytest.mark.parametrize("singlefile", [True, False])
 @pytest.mark.parametrize("diskckp", [True, False])
-def test_forward_nt(nt, ncp, singlefile, diskckp):
-    df = np.zeros([nt, ncp])
+@pytest.mark.parametrize("block_size", [1])
+def test_forward_nt(nt, ncp, singlefile, diskckp, block_size):
+    df = np.zeros([block_size, nt, ncp])
     db = np.zeros([nt, ncp])
     cp = IncrementCheckpoint([df, db])
     f = IncOperator(1, df)
@@ -50,8 +51,9 @@ def test_forward_nt(nt, ncp, singlefile, diskckp):
                                      (10, 9), (10, 10), (10, 11), (10, 12)])
 @pytest.mark.parametrize("singlefile", [True, False])
 @pytest.mark.parametrize("diskckp", [True, False])
-def test_reverse_nt(nt, ncp, singlefile, diskckp):
-    df = np.zeros([nt, ncp])
+@pytest.mark.parametrize("block_size", [1])
+def test_reverse_nt(nt, ncp, singlefile, diskckp, block_size):
+    df = np.zeros([block_size, nt, ncp])
     db = np.zeros([nt, ncp])
     cp = IncrementCheckpoint([df])
     f = IncOperator(1, df)

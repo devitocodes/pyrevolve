@@ -123,7 +123,11 @@ class IncOperator(Operator):
         t_end = kwargs['t_end']
         assert(t_start <= t_end)
         if self.direction == 1:
-            self.u[:] = self.u[:] + self.direction * abs(t_start - t_end)
+            for t in range(t_start, t_end):
+                idx = t % np.shape(self.u)[0]
+                past_idx = (t-1) % np.shape(self.u)[0]
+                self.u[idx][:] = self.u[past_idx][:] + self.direction * 1
         else:
-            self.v[:] = (self.u[:]*(-1) + 1)
+            idx = (t_start) % np.shape(self.u)[0]
+            self.v[:] = (self.u[idx][:]*(-1) + 1)
         self.counter += abs(t_end - t_start)
