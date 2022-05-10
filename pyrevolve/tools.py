@@ -48,6 +48,7 @@ class OutputGrabber(object):
         """
         Stop capturing the stream data and save the text in `capturedtext`.
         """
+
         # Print the escape character to make the readOutput method stop:
         self.origstream.write(self.escape_char)
         # Flush the stream to make sure all our data goes in before

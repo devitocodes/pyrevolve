@@ -171,6 +171,10 @@ class BaseRevolver(object):
     def makespan(self):
         return 0
 
+    @property
+    def ratio(self):
+        return 0
+
     def apply_forward(self):
         """Executes only the forward computation while storing checkpoints,
         then returns."""
@@ -268,6 +272,11 @@ class BaseRevolver(object):
     def remove_checkpoint(self, st_idx=0):
         return NotImplemented
 
+    def storage_ckps(self, k=0):
+        """Returns a list of all checkpoint keys stored at the k-th
+        storage level"""
+        return NotImplemented
+
 
 class SingleLevelRevolver(BaseRevolver):
     """
@@ -345,6 +354,16 @@ class SingleLevelRevolver(BaseRevolver):
             self.compression_params = compression_params
             self.addNumpyStorage(compression_params)
 
+    @property
+    def ratio(self):
+        return self.scheduler.ratio
+
+    def storage_ckps(self, k=0):
+        """Returns a list of all checkpoint keys stored at the k-th
+        storage level"""
+        # single level always uses first storage object on storage_list
+        return self.scheduler.storage(0)
+
 
 class MultiLevelRevolver(BaseRevolver):
     """
@@ -389,7 +408,6 @@ class MultiLevelRevolver(BaseRevolver):
             checkpoint:         checkpoint object
             fwd_operator:       forward operator
             rev_operator:       backward operator
-            n_checkpoints:      number of checkpoints
             n_timesteps:        number of timesteps
             timings:            timings
             profiler:           profiler
@@ -442,6 +460,15 @@ class MultiLevelRevolver(BaseRevolver):
     @property
     def makespan(self):
         return self.scheduler.makespan
+
+    @property
+    def ratio(self):
+        return self.scheduler.ratio
+
+    def storage_ckps(self, k=0):
+        """Returns a list of all checkpoint keys stored at the k-th
+        storage level"""
+        return self.scheduler.storage(k)
 
     def save_checkpoint(self, st_idx=0):
         data_pointers = self.checkpoint.get_data(self.scheduler.capo)

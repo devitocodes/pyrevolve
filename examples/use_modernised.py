@@ -1,6 +1,6 @@
 import pyrevolve as pr
 import numpy as np
-import collections
+from collections.abc import Mapping
 
 
 class Symbol(object):
@@ -30,7 +30,7 @@ class ForwardOperator(pr.Operator):
         self.m = m
 
     def apply(self, t_start, t_end):
-        print((">"*(t_end-t_start)).rjust(t_end))
+        # print((">"*(t_end-t_start)).rjust(t_end))
         for i in range(t_start, t_end):
             u.data = u.data + m.data
 
@@ -42,7 +42,7 @@ class ReverseOperator(pr.Operator):
         self.m = m
 
     def apply(self, t_start, t_end):
-        print(("<"*(t_end-t_start)).rjust(t_end))
+        # print(("<"*(t_end-t_start)).rjust(t_end))
         for i in range(t_end, t_start, -1):
             v.data = v.data + m.data
 
@@ -55,7 +55,7 @@ class MyCheckpoint(pr.Checkpoint):
         stores only a reference to the symbols that are passed into it.
         The symbols must be passed as a mapping symbolname->symbolobject."""
 
-        if(isinstance(symbols, collections.Mapping)):
+        if(isinstance(symbols, Mapping)):
             self.symbols = symbols
         else:
             raise Exception("Symbols must be a Mapping, for example a \

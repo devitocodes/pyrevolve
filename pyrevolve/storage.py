@@ -54,6 +54,7 @@ class Storage(object):
         self.name = name
         self.__maxsize = self.size_ckp * n_ckp
         self.__current_size = 0
+        self.__itemsize = np.dtype(self.dtype).itemsize
 
         # stack interface controls
         self.__stack_ptr = -1
@@ -97,12 +98,17 @@ class Storage(object):
 
     @property
     def maxsize(self):
-        """Returns the maximum storage size in bytes"""
+        """Returns the maximum storage size in words of 'dtype'"""
         return self.__maxsize
 
     @property
+    def maxsize_in_bytes(self):
+        """Returns the maximum storage size in bytes"""
+        return self.__maxsize*self.__itemsize
+
+    @property
     def size(self):
-        """Returns the current storage size in bytes"""
+        """Returns the current storage size in words of 'dtype'"""
         return self.__current_size
 
     @property
@@ -216,12 +222,13 @@ class DiskStorage(Storage):
             else:
                 ckpfile = self.datFileName + (".k%d" % (key))
                 self.checkFilesDir()
-                slot = open(ckpfile, "bw+")
+                slot = open(ckpfile, "bw")
 
             for ptr in data_pointers:
                 assert ptr.strides[-1] == ptr.itemsize
                 with self.profiler.get_timer("storage", "flatten"):
                     data = ptr.ravel()
+                    data = data.astype(self.dtype)
                 data.tofile(slot)
                 slot.flush()
                 self.__current_size += self.size_ckp
@@ -238,7 +245,7 @@ class DiskStorage(Storage):
             else:
                 ckpfile = self.datFileName + (".k%d" % (key))
                 self.checkFilesDir()
-                slot = open(ckpfile, "br+")
+                slot = open(ckpfile, "br")
 
             offset = 0
             for shape, ptr in zip(self.shapes[key], locations):
@@ -283,6 +290,7 @@ class NumpyStorage(Storage):
                 data = ptr.ravel()
             with self.profiler.get_timer("storage", "copy_save"):
                 np.copyto(slot[offset:(len(data) + offset)], data)
+
             offset += len(data)
             shapes.append(ptr.shape)
         self.shapes[key] = shapes
