@@ -40,7 +40,7 @@ i_required = ["contexttimer"]
 
 configuration = {
     'name': 'pyrevolve',
-    'packages': ["pyrevolve"],
+    'packages': find_packages(exclude=['examples', 'tests']),,
     'setup_requires': s_required,
     'install_requires': i_required,
     'extras_require': {'compression': ['blosc', 'pyzfp']},
