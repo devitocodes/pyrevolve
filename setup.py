@@ -1,4 +1,4 @@
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 import versioneer
 
 
