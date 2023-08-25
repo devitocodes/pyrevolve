@@ -35,7 +35,7 @@ def extensions():
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-s_required = ["cython>=0.17", "versioneer"]
+s_required = ["cython>=0.17,<=3.0.0", "versioneer", "flake8"]
 i_required = ["contexttimer"]
 
 configuration = {
