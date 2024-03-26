@@ -14,21 +14,25 @@ jobs:
         python-version: [3.6-dev, 3.x]
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+
     - name: Install dependencies
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install pytest numpy
-        pip install -e .
+        python3 -m pip install --upgrade pip
+        python3 -m pip install pytest numpy
+        python3 -m pip install -e .
       env:
         PYTHONPATH: $PWD
+
     - name: Run examples
       run: |
-        python examples/use_classic.py
-        python examples/use_modernised.py
+        python3 examples/use_classic.py
+        python3 examples/use_modernised.py
+
     - name: Test with pytest
       run: py.test -vs tests

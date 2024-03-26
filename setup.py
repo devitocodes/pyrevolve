@@ -43,7 +43,7 @@ configuration = {
     'packages': find_packages(exclude=['examples', 'tests']),
     'setup_requires': s_required,
     'install_requires': i_required,
-    'extras_require': {'compression': ['blosc', 'pyzfp']},
+    'extras_require': {'compression': ['blosc2', 'pyzfp']},
     'ext_modules': lazy_cythonize(extensions),
     'version': versioneer.get_version(),
     'cmdclass': versioneer.get_cmdclass(),
@@ -52,7 +52,7 @@ configuration = {
     'long_description_content_type': 'text/markdown',
     'url': 'https://github.com/opesci/pyrevolve/',
     'author': "Imperial College London",
-    'author_email': 'opesci@imperial.ac.uk',
+    'author_email': 'g.gorman@imperial.ac.uk',
     'license': 'MIT',
     'zip_safe': False
 }
