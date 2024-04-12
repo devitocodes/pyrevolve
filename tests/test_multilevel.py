@@ -14,10 +14,11 @@ import pytest
 @pytest.mark.parametrize("drd", [0, 2])
 @pytest.mark.parametrize("uf", [1, 2])
 @pytest.mark.parametrize("ub", [1, 2])
-def test_forward_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
+@pytest.mark.parametrize("block_size", [1, 5, 10])
+def test_forward_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile, block_size):
     nx = 10
     ny = 10
-    df = np.zeros([nx, ny])
+    df = np.zeros([block_size, nx, ny])
     db = np.zeros([nx, ny])
     cp = IncrementCheckpoint([df, db])
     f = IncOperator(1, df)
@@ -28,7 +29,8 @@ def test_forward_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
         cp.size, nt, cp.dtype, filedir="./", singlefile=singlefile, wd=dwd, rd=drd
     )
     st_list = [npStorage, dkStorage]
-    rev = MultiLevelRevolver(cp, f, b, nt, storage_list=st_list, uf=uf, ub=ub)
+    rev = MultiLevelRevolver(cp, f, b, nt, storage_list=st_list, uf=uf, ub=ub,
+                             block_size=block_size)
     assert f.counter == 0
     rev.apply_forward()
     assert f.counter == nt
@@ -42,10 +44,11 @@ def test_forward_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
 @pytest.mark.parametrize("drd", [0, 2])
 @pytest.mark.parametrize("uf", [1, 2])
 @pytest.mark.parametrize("ub", [1, 2])
-def test_reverse_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
+@pytest.mark.parametrize("block_size", [1, 5, 10])
+def test_reverse_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile, block_size):
     nx = 10
     ny = 10
-    df = np.zeros([nx, ny])
+    df = np.zeros([block_size, nx, ny])
     db = np.zeros([nx, ny])
     cp = IncrementCheckpoint([df])
     f = IncOperator(1, df)
@@ -56,7 +59,8 @@ def test_reverse_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
         cp.size, nt, cp.dtype, filedir="./", singlefile=singlefile, wd=dwd, rd=drd
     )
     st_list = [npStorage, dkStorage]
-    rev = MultiLevelRevolver(cp, f, b, nt, storage_list=st_list, uf=uf, ub=ub)
+    rev = MultiLevelRevolver(cp, f, b, nt, storage_list=st_list, uf=uf, ub=ub,
+                             block_size=block_size)
 
     rev.apply_forward()
     assert f.counter == nt
@@ -73,7 +77,8 @@ def test_reverse_nt(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
 @pytest.mark.parametrize("drd", [0, 2])
 @pytest.mark.parametrize("uf", [1, 2])
 @pytest.mark.parametrize("ub", [1, 2])
-def test_num_loads_and_saves(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
+@pytest.mark.parametrize("block_size", [1, 5, 10])
+def test_num_loads_and_saves(nt, mwd, mrd, dwd, drd, uf, ub, singlefile, block_size):
     cp = SimpleCheckpoint()
     f = SimpleOperator()
     b = SimpleOperator()
@@ -83,7 +88,8 @@ def test_num_loads_and_saves(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
         cp.size, nt, cp.dtype, filedir="./", singlefile=singlefile, wd=dwd, rd=drd
     )
     st_list = [npStorage, dkStorage]
-    rev = MultiLevelRevolver(cp, f, b, nt, storage_list=st_list, uf=uf, ub=ub)
+    rev = MultiLevelRevolver(cp, f, b, nt, storage_list=st_list, uf=uf, ub=ub,
+                             block_size=block_size)
 
     rev.apply_forward()
     assert cp.load_counter == 0
@@ -99,7 +105,8 @@ def test_num_loads_and_saves(nt, mwd, mrd, dwd, drd, uf, ub, singlefile):
 @pytest.mark.parametrize("drd", [0, 2])
 @pytest.mark.parametrize("uf", [1, 2])
 @pytest.mark.parametrize("ub", [1, 2])
-def test_multi_and_single_outputs(nt, mwd, mrd, dwd, drd, uf, ub):
+@pytest.mark.parametrize("block_size", [1, 5, 10])
+def test_multi_and_single_outputs(nt, mwd, mrd, dwd, drd, uf, ub, block_size):
     """
     Tests whether SingleLevelRevolver and MultilevelRevolver are producing
     the same outputs
@@ -107,12 +114,12 @@ def test_multi_and_single_outputs(nt, mwd, mrd, dwd, drd, uf, ub):
     nx = 10
     ny = 10
     const = 1
-    m_df = np.zeros([nx, ny])
+    m_df = np.zeros([block_size, nx, ny])
     m_db = np.zeros([nx, ny])
     m_cp = IncrementCheckpoint([m_df])
     m_fwd = IncOperator(const, m_df)
     m_rev = IncOperator((-1) * const, m_df, m_db)
-    s_df = np.zeros([nx, ny])
+    s_df = np.zeros([block_size, nx, ny])
     s_db = np.zeros([nx, ny])
     s_cp = IncrementCheckpoint([s_df])
     s_fwd = IncOperator(const, s_df)
@@ -124,10 +131,11 @@ def test_multi_and_single_outputs(nt, mwd, mrd, dwd, drd, uf, ub):
     )
     st_list = [m_npStorage, m_dkStorage]
     m_wrp = MultiLevelRevolver(
-        m_cp, m_fwd, m_rev, nt, storage_list=st_list, uf=uf, ub=ub
+        m_cp, m_fwd, m_rev, nt, storage_list=st_list, uf=uf, ub=ub,
+        block_size=block_size
     )
 
-    s_wrp = MemoryRevolver(s_cp, s_fwd, s_rev, nt, nt)
+    s_wrp = MemoryRevolver(s_cp, s_fwd, s_rev, nt, nt, block_size=block_size)
 
     m_wrp.apply_forward()
     s_wrp.apply_forward()
