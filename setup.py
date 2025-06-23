@@ -43,7 +43,7 @@ configuration = {
     'packages': find_packages(exclude=['examples', 'tests']),
     'setup_requires': s_required,
     'install_requires': i_required,
-    'python_requires': '>=3.10,<=3.13',
+    'python_requires': '>=3.10,<3.14',
     'extras_require': {'compression': ['blosc2', 'pyzfp']},
     'ext_modules': lazy_cythonize(extensions),
     'version': versioneer.get_version(),
