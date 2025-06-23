@@ -55,8 +55,8 @@ configuration = {
     'author': "Imperial College London",
     'author_email': 'g.gorman@imperial.ac.uk',
     'license': 'MIT',
-    'zip_safe': False
-    ,'classifiers': [
+    'zip_safe': False,
+    'classifiers': [
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.10',
