@@ -35,14 +35,15 @@ def extensions():
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-s_required = ["cython>=0.17,<=3.0.0", "versioneer", "flake8"]
-i_required = ["contexttimer"]
+i_required = ["contexttimer", "numpy"]
+s_required = ["cython>=3.0", "versioneer", "flake8"]
 
 configuration = {
     'name': 'pyrevolve',
     'packages': find_packages(exclude=['examples', 'tests']),
     'setup_requires': s_required,
     'install_requires': i_required,
+    'python_requires': '>=3.10,<=3.13',
     'extras_require': {'compression': ['blosc2', 'pyzfp']},
     'ext_modules': lazy_cythonize(extensions),
     'version': versioneer.get_version(),
@@ -55,6 +56,14 @@ configuration = {
     'author_email': 'g.gorman@imperial.ac.uk',
     'license': 'MIT',
     'zip_safe': False
+    ,'classifiers': [
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
+        'Programming Language :: Python :: 3.13'
+    ]
 }
 
 
