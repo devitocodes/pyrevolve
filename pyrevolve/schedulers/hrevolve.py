@@ -630,12 +630,6 @@ class HRevolve(Scheduler):
     def __init__(self, n_checkpoints, n_timesteps, architecture=None, uf=1, ub=1, up=1):
         super().__init__(n_checkpoints, n_timesteps)
 
-        if n_checkpoints != n_timesteps:
-            raise ValueError(
-                "HRevolveError: the number of checkpoints \
-                must be equal to the number of timesteps"
-            )
-
         self.hsequence = None
         if architecture is None:
             self.architecture = Architecture()  # loads default arch
