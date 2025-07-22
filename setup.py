@@ -24,12 +24,19 @@ class lazy_cythonize(list):
 
 def extensions():
     from Cython.Build import cythonize
+    from Cython.Compiler.Version import version as cython_version
+    from packaging.version import Version
     ext = Extension("pyrevolve.crevolve", sources=["pyrevolve/schedulers/crevolve.pyx",
                                                    "src/revolve_c.cpp",
                                                    "src/revolve.cpp"],
                     include_dirs=[".", "pyrevolve"],
                     language="c++")
-    return cythonize([ext])
+
+    compiler_directives = {}
+    if Version(cython_version) >= Version("3.1.0"):
+        compiler_directives["freethreading_compatible"] = True
+
+    return cythonize([ext], compiler_directives=compiler_directives)
 
 
 with open("README.md", "r") as fh:
