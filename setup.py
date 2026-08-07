@@ -50,7 +50,7 @@ configuration = {
     'packages': find_packages(exclude=['examples', 'tests']),
     'setup_requires': s_required,
     'install_requires': i_required,
-    'python_requires': '>=3.10,<3.14',
+    'python_requires': '>=3.10,<3.15',
     'extras_require': {'compression': ['blosc2', 'pyzfp']},
     'ext_modules': lazy_cythonize(extensions),
     'version': versioneer.get_version(),
@@ -69,7 +69,8 @@ configuration = {
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
         'Programming Language :: Python :: 3.12',
-        'Programming Language :: Python :: 3.13'
+        'Programming Language :: Python :: 3.13',
+        'Programming Language :: Python :: 3.14'
     ]
 }
 
